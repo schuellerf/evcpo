@@ -127,7 +127,7 @@ export function render3DChart(
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' } },
+      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const },
       yaxis: { title: { text: 'Target Hour' } },
       zaxis: { title: { text: 'Avg Price (ct/kWh)' } },
     },
@@ -167,7 +167,7 @@ export function update3DChart(
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' } },
+      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const },
       yaxis: { title: { text: 'Target Hour' } },
       zaxis: { title: { text: 'Avg Price (ct/kWh)' } },
     },
