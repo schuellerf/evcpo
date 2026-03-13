@@ -152,14 +152,30 @@ async function updateChart(): Promise<void> {
   }
 }
 
+function debounce(fn: () => void, ms: number): () => void {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  return () => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(fn, ms);
+  };
+}
+
+function refreshAll(): void {
+  void runCalculation();
+  void updateChart();
+}
+
 function init(): void {
   setDefaultTargetTime();
-  document.getElementById('calculate')?.addEventListener('click', runCalculation);
-  document.getElementById('update-chart')?.addEventListener('click', updateChart);
-  document.getElementById('target-soc')?.addEventListener('input', updateChart);
-  document.getElementById('target-soc')?.addEventListener('change', updateChart);
-  document.getElementById('target-time')?.addEventListener('change', updateChart);
-  updateChart();
+  const debouncedRefresh = debounce(refreshAll, 350);
+
+  const inputIds = ['current-soc', 'target-soc', 'target-time', 'charge-speed'];
+  for (const id of inputIds) {
+    document.getElementById(id)?.addEventListener('input', debouncedRefresh);
+    document.getElementById(id)?.addEventListener('change', debouncedRefresh);
+  }
+
+  refreshAll();
 }
 
 init();
