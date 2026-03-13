@@ -120,10 +120,14 @@ async function updateChart(): Promise<void> {
       targetSocs,
       priceSlots
     );
+    const targetSoc = parseFloat(
+      (document.getElementById('target-soc') as HTMLInputElement).value
+    );
     const chartData: ChartData = {
       targetHours,
       targetSocs,
       matrix,
+      highlightSoc: targetSoc,
     };
     chartEl.innerHTML = '';
     const chartDiv = document.createElement('div');
