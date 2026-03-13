@@ -13,8 +13,8 @@ export interface ChartData {
   matrix: number[][];
   /** Current SOC (%) for highlight logic and hours calculation. */
   currentSoc: number;
-  /** Charge speed (%/hour) for hours calculation in price mode. */
-  chargeSpeed: number;
+  /** EV battery capacity (kWh) for hours calculation. */
+  evCapacity: number;
   /** Z-axis display mode: ct/kWh or price (× kW × h). */
   zMode: ZMode;
   /** Power in kW for price mode (ct/kWh × kW × hours). */
@@ -28,7 +28,7 @@ export interface ChartData {
 const CT_PER_MWH = 10; // 1 Eur/MWh = 10 ct/kWh (approximately, for display)
 
 function buildChartData(data: ChartData) {
-  const { targetHours, targetSocs, matrix, currentSoc, chargeSpeed, zMode, powerKw = 0 } = data;
+  const { targetHours, targetSocs, matrix, currentSoc, evCapacity, zMode, powerKw = 0 } = data;
 
   // X = target SOC, Y = target hour (swapped from original)
   const x = targetSocs.map((s) => `${s}%`);
@@ -50,7 +50,7 @@ function buildChartData(data: ChartData) {
       if (Number.isNaN(v)) return null;
       const ctPerKwh = v / CT_PER_MWH;
       if (!isPrice) return ctPerKwh;
-      const hours = getHoursNeeded(currentSoc, targetSocs[s], chargeSpeed);
+      const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       return (ctPerKwh * powerKw * hours) / 100;
     })
   );
@@ -60,7 +60,7 @@ function buildChartData(data: ChartData) {
       if (Number.isNaN(v)) return `Target: ${y[h]} / ${x[s]} — Not enough hours`;
       const ctPerKwh = v / CT_PER_MWH;
       if (!isPrice) return `Target: ${y[h]} / ${x[s]} — Avg: ${ctPerKwh.toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
-      const hours = getHoursNeeded(currentSoc, targetSocs[s], chargeSpeed);
+      const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       const priceEur = (ctPerKwh * powerKw * hours) / 100;
       return `Target: ${y[h]} / ${x[s]} — Price: €${priceEur.toFixed(2)} (${ctPerKwh.toFixed(2)} ct/kWh × ${powerKw.toFixed(2)} kW × ${hours}h)`;
     })
@@ -74,7 +74,7 @@ function zValue(
   s: number,
   currentSoc: number,
   targetSocs: number[],
-  chargeSpeed: number,
+  evCapacity: number,
   powerKw: number,
   isPrice: boolean
 ): number {
@@ -82,7 +82,7 @@ function zValue(
   if (v == null || Number.isNaN(v)) return NaN;
   const ctPerKwh = v / CT_PER_MWH;
   if (!isPrice) return ctPerKwh;
-  const hours = getHoursNeeded(currentSoc, targetSocs[s], chargeSpeed);
+  const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
   return (ctPerKwh * powerKw * hours) / 100;
 }
 
@@ -91,7 +91,7 @@ function zValue(
  */
 function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
   const { x, y, isPrice } = buildChartData(data);
-  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc, chargeSpeed, powerKw = 0 } = data;
+  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc, evCapacity, powerKw = 0 } = data;
   const traces: Record<string, unknown>[] = [];
 
   if (highlightSoc == null) return traces;
@@ -110,7 +110,7 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
   const lineZ: (number | null)[] = [];
 
   for (let h = 0; h < targetHours.length; h++) {
-    const z = zValue(matrix, h, s, currentSoc, targetSocs, chargeSpeed, powerKw, isPrice);
+    const z = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice);
     if (!Number.isNaN(z)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
@@ -143,7 +143,7 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
  */
 function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
   const { x, y, isPrice } = buildChartData(data);
-  const { targetSocs, targetHours, matrix, highlightHour, currentSoc, chargeSpeed, powerKw = 0 } = data;
+  const { targetSocs, targetHours, matrix, highlightHour, currentSoc, evCapacity, powerKw = 0 } = data;
   const traces: Record<string, unknown>[] = [];
 
   if (highlightHour == null || targetHours.length === 0) return traces;
@@ -162,7 +162,7 @@ function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
   const lineZ: (number | null)[] = [];
 
   for (let s = 0; s < targetSocs.length; s++) {
-    const z = zValue(matrix, h, s, currentSoc, targetSocs, chargeSpeed, powerKw, isPrice);
+    const z = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice);
     if (!Number.isNaN(z)) {
       lineX.push(x[s]);
       lineY.push(y[h]);

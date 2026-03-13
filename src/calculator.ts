@@ -6,15 +6,19 @@ import type { PriceSlot } from './api';
 
 /**
  * Number of hours needed to charge from current SOC to target SOC.
+ * Uses EV capacity (kWh) and charging power (kW).
  * Rounded up to ensure target is reached.
  */
 export function getHoursNeeded(
   currentSoc: number,
   targetSoc: number,
-  chargeSpeedPerHour: number
+  capacityKwh: number,
+  powerKw: number
 ): number {
-  if (targetSoc <= currentSoc || chargeSpeedPerHour <= 0) return 0;
-  return Math.ceil((targetSoc - currentSoc) / chargeSpeedPerHour);
+  if (targetSoc <= currentSoc || powerKw <= 0) return 0;
+  const deltaPercent = (targetSoc - currentSoc) / 100;
+  const energyKwh = deltaPercent * capacityKwh;
+  return Math.ceil(energyKwh / powerKw);
 }
 
 /**
@@ -37,7 +41,8 @@ export function getCheapestAveragePrice(
 /**
  * Compute the average price matrix for the 3D chart.
  * @param currentSoc - Current SOC (%)
- * @param chargeSpeed - Charge speed (%/hour)
+ * @param capacityKwh - EV battery capacity (kWh)
+ * @param powerKw - Charging power (kW)
  * @param targetHours - Array of target hour timestamps (start of each hour)
  * @param targetSocs - Array of target SOC values (%)
  * @param priceSlots - All available price slots (must cover the time range)
@@ -45,7 +50,8 @@ export function getCheapestAveragePrice(
  */
 export function computeMatrix(
   currentSoc: number,
-  chargeSpeed: number,
+  capacityKwh: number,
+  powerKw: number,
   targetHours: number[],
   targetSocs: number[],
   priceSlots: PriceSlot[]
@@ -61,7 +67,7 @@ export function computeMatrix(
 
     for (let s = 0; s < targetSocs.length; s++) {
       const targetSoc = targetSocs[s];
-      const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, chargeSpeed);
+      const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, capacityKwh, powerKw);
       const avg = getCheapestAveragePrice(slotsUntilTarget, hoursNeeded);
       row.push(avg);
     }

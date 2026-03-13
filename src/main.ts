@@ -90,9 +90,10 @@ async function runCalculation(): Promise<void> {
   );
   const targetDateStr = (document.getElementById('target-date') as HTMLInputElement).value;
   const targetTimeStr = (document.getElementById('target-time') as HTMLInputElement).value;
-  const chargeSpeed = parseFloat(
-    (document.getElementById('charge-speed') as HTMLInputElement).value
+  const evCapacity = parseFloat(
+    (document.getElementById('ev-capacity') as HTMLInputElement).value
   );
+  const powerKw = getPowerKw();
   const resultEl = document.getElementById('result-text');
   if (!resultEl) return;
   resultEl.textContent = 'Loading…';
@@ -106,7 +107,7 @@ async function runCalculation(): Promise<void> {
       return;
     }
     const slots = await fetchPriceData(startMs, endMs);
-    const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, chargeSpeed);
+    const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, evCapacity, powerKw);
     const avgPrice = getCheapestAveragePrice(slots, hoursNeeded);
     if (Number.isNaN(avgPrice)) {
       resultEl.textContent = `Not enough price slots. Need ${hoursNeeded} hours, got ${slots.length}.`;
@@ -122,9 +123,10 @@ async function updateChart(): Promise<void> {
   const currentSoc = parseFloat(
     (document.getElementById('current-soc') as HTMLInputElement).value
   );
-  const chargeSpeed = parseFloat(
-    (document.getElementById('charge-speed') as HTMLInputElement).value
+  const evCapacity = parseFloat(
+    (document.getElementById('ev-capacity') as HTMLInputElement).value
   );
+  const powerKw = getPowerKw();
   const chartEl = document.getElementById('chart');
   if (!chartEl) return;
   chartEl.innerHTML = '<p class="chart-loading">Loading…</p>';
@@ -143,7 +145,8 @@ async function updateChart(): Promise<void> {
     const targetSocs = getTargetSocs(currentSoc);
     const matrix = computeMatrix(
       currentSoc,
-      chargeSpeed,
+      evCapacity,
+      powerKw,
       targetHours,
       targetSocs,
       priceSlots
@@ -161,9 +164,9 @@ async function updateChart(): Promise<void> {
       targetSocs,
       matrix,
       currentSoc,
-      chargeSpeed,
+      evCapacity,
       zMode: isPriceMode ? 'price' : 'ct-per-kwh',
-      powerKw: getPowerKw(),
+      powerKw,
       highlightSoc: targetSoc,
       highlightHour,
     };
@@ -194,7 +197,7 @@ function refreshAll(): void {
 const SLIDER_PAIRS: { numId: string; sliderId: string; min: number; max: number }[] = [
   { numId: 'current-soc', sliderId: 'current-soc-slider', min: 0, max: 100 },
   { numId: 'target-soc', sliderId: 'target-soc-slider', min: 0, max: 100 },
-  { numId: 'charge-speed', sliderId: 'charge-speed-slider', min: 1, max: 20 },
+  { numId: 'ev-capacity', sliderId: 'ev-capacity-slider', min: 40, max: 100 },
 ];
 
 function init(): void {
