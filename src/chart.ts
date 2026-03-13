@@ -177,7 +177,7 @@ export function render3DChart(
     contours: {
       x: { show: false },
       y: { show: false },
-      z: { show: false },
+      z: { show: false, highlight: false },
     },
   };
 
@@ -187,9 +187,9 @@ export function render3DChart(
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const },
-      yaxis: { title: { text: 'Target Hour' } },
-      zaxis: { title: { text: 'Avg Price (ct/kWh)' } },
+      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
+      yaxis: { title: { text: 'Target Hour' }, showspikes: false },
+      zaxis: { title: { text: 'Avg Price (ct/kWh)' }, showspikes: false },
     },
     margin: { l: 0, r: 0, b: 0, t: 40 },
   };
@@ -224,18 +224,18 @@ export function update3DChart(
     colorscale: 'Viridis',
     hoverinfo: 'text' as const,
     contours: {
-      x: { show: false },
-      y: { show: false },
-      z: { show: false },
+      x: { show: false, highlight: false },
+      y: { show: false, highlight: false },
+      z: { show: false, highlight: false },
     },
   };
 
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const },
-      yaxis: { title: { text: 'Target Hour' } },
-      zaxis: { title: { text: 'Avg Price (ct/kWh)' } },
+      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
+      yaxis: { title: { text: 'Target Hour' }, showspikes: false },
+      zaxis: { title: { text: 'Avg Price (ct/kWh)' }, showspikes: false },
     },
     margin: { l: 0, r: 0, b: 0, t: 40 },
   };
