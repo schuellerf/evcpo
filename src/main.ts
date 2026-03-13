@@ -59,6 +59,23 @@ function setDefaultTargetTime(): void {
   }
 }
 
+function getPowerKw(): number {
+  const amps = parseInt((document.getElementById('charge-amps') as HTMLInputElement)?.value ?? '16', 10);
+  const phases = (document.getElementById('charge-3phase') as HTMLInputElement)?.checked ? 3 : 1;
+  const voltageEl = document.querySelector('input[name="voltage"]:checked') as HTMLInputElement;
+  const voltage = parseInt(voltageEl?.value ?? '230', 10);
+  const clampedAmps = Math.max(6, Math.min(16, amps));
+  return (voltage * clampedAmps * phases) / 1000;
+}
+
+function updatePowerDisplay(): void {
+  const ampsEl = document.getElementById('charge-amps') as HTMLInputElement;
+  const ampsValueEl = document.getElementById('charge-amps-value');
+  const powerKwEl = document.getElementById('power-kw');
+  if (ampsEl && ampsValueEl) ampsValueEl.textContent = ampsEl.value;
+  if (powerKwEl) powerKwEl.textContent = getPowerKw().toFixed(2);
+}
+
 function formatResult(hours: number, avgPriceEurMWh: number): string {
   const ct = (avgPriceEurMWh / CT_PER_MWH).toFixed(2);
   return `Charge for ${hours} hour${hours === 1 ? '' : 's'}. Average price: ${ct} ct/kWh`;
@@ -138,10 +155,13 @@ async function updateChart(): Promise<void> {
     const targetTimeStr = (document.getElementById('target-time') as HTMLInputElement).value;
     const targetTime = targetDateStr && targetTimeStr ? new Date(`${targetDateStr}T${targetTimeStr}`) : null;
     const highlightHour = targetTime ? (targetTime.setMinutes(0, 0, 0), targetTime.getTime()) : undefined;
+    const isPriceMode = (document.getElementById('z-mode-price') as HTMLInputElement)?.checked ?? false;
     const chartData: ChartData = {
       targetHours,
       targetSocs,
       matrix,
+      currentSoc,
+      zMode: isPriceMode ? 'price' : 'ct-per-kwh',
       highlightSoc: targetSoc,
       highlightHour,
     };
@@ -211,6 +231,27 @@ function init(): void {
     document.getElementById(id)?.addEventListener('change', debouncedRefresh);
   }
 
+  document.getElementById('z-mode-price')?.addEventListener('change', () => void updateChart());
+
+  const powerInputs = ['charge-amps', 'charge-3phase'];
+  for (const id of powerInputs) {
+    document.getElementById(id)?.addEventListener('input', () => {
+      updatePowerDisplay();
+      void updateChart();
+    });
+    document.getElementById(id)?.addEventListener('change', () => {
+      updatePowerDisplay();
+      void updateChart();
+    });
+  }
+  document.querySelectorAll('input[name="voltage"]').forEach((el) => {
+    el.addEventListener('change', () => {
+      updatePowerDisplay();
+      void updateChart();
+    });
+  });
+
+  updatePowerDisplay();
   refreshAll();
 }
 

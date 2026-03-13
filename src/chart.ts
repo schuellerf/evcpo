@@ -4,10 +4,16 @@
 
 import Plotly from 'plotly.js-dist-min';
 
+export type ZMode = 'ct-per-kwh' | 'price';
+
 export interface ChartData {
   targetHours: number[];
   targetSocs: number[];
   matrix: number[][];
+  /** Current SOC (%) for delta calculation in price mode. */
+  currentSoc: number;
+  /** Z-axis display mode: ct/kWh or price (× delta). */
+  zMode: ZMode;
   /** If set, only this SOC value gets a red highlight line (user's chosen target SOC). */
   highlightSoc?: number;
   /** If set, draw a red line at this target time (timestamp of start of hour). */
@@ -17,7 +23,7 @@ export interface ChartData {
 const CT_PER_MWH = 10; // 1 Eur/MWh = 10 ct/kWh (approximately, for display)
 
 function buildChartData(data: ChartData) {
-  const { targetHours, targetSocs, matrix } = data;
+  const { targetHours, targetSocs, matrix, currentSoc, zMode } = data;
 
   // X = target SOC, Y = target hour (swapped from original)
   const x = targetSocs.map((s) => `${s}%`);
@@ -31,30 +37,43 @@ function buildChartData(data: ChartData) {
     return `${day} ${d.getHours()}:00`;
   });
   const y = yLabels;
+  const isPrice = zMode === 'price';
   // Plotly surface: z[y_index][x_index], so z[hour_idx][soc_idx] = matrix[h][s]
   const z = targetHours.map((_, h) =>
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
-      return Number.isNaN(v) ? null : v / CT_PER_MWH;
+      if (Number.isNaN(v)) return null;
+      const ctPerKwh = v / CT_PER_MWH;
+      return isPrice ? ctPerKwh * (targetSocs[s] - currentSoc) : ctPerKwh;
     })
   );
   const text = targetHours.map((_, h) =>
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
-      return Number.isNaN(v)
-        ? `Target: ${y[h]} / ${x[s]} — Not enough hours`
-        : `Target: ${y[h]} / ${x[s]} — Avg: ${(v / CT_PER_MWH).toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
+      if (Number.isNaN(v)) return `Target: ${y[h]} / ${x[s]} — Not enough hours`;
+      const ctPerKwh = v / CT_PER_MWH;
+      const delta = targetSocs[s] - currentSoc;
+      return isPrice
+        ? `Target: ${y[h]} / ${x[s]} — Price: ${(ctPerKwh * delta).toFixed(1)} (${ctPerKwh.toFixed(2)} ct/kWh × ${delta}%)`
+        : `Target: ${y[h]} / ${x[s]} — Avg: ${ctPerKwh.toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
     })
   );
-  return { x, y, z, text };
+  return { x, y, z, text, isPrice };
+}
+
+function zValue(matrix: number[][], h: number, s: number, currentSoc: number, targetSocs: number[], isPrice: boolean): number {
+  const v = matrix[h]?.[s];
+  if (v == null || Number.isNaN(v)) return NaN;
+  const ctPerKwh = v / CT_PER_MWH;
+  return isPrice ? ctPerKwh * (targetSocs[s] - currentSoc) : ctPerKwh;
 }
 
 /**
  * Build red Scatter3d line trace only for the user's selected target SOC (highlightSoc).
  */
 function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
-  const { x, y } = buildChartData(data);
-  const { targetSocs, targetHours, matrix, highlightSoc } = data;
+  const { x, y, isPrice } = buildChartData(data);
+  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc } = data;
   const traces: Record<string, unknown>[] = [];
 
   if (highlightSoc == null) return traces;
@@ -68,17 +87,16 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
   }
   if (s < 0) return traces;
 
-  // Red line: constant SOC (x), varies over hours (y). After swap: x=SOC, y=hour.
   const lineX: string[] = [];
   const lineY: string[] = [];
   const lineZ: (number | null)[] = [];
 
   for (let h = 0; h < targetHours.length; h++) {
-    const v = matrix[h][s];
-    if (!Number.isNaN(v)) {
+    const z = zValue(matrix, h, s, currentSoc, targetSocs, isPrice);
+    if (!Number.isNaN(z)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
-      lineZ.push(v / CT_PER_MWH + 0.1);
+      lineZ.push(z + 0.1);
     } else {
       if (lineX.length > 0) {
         lineX.push(null as unknown as string);
@@ -106,8 +124,8 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
  * Line runs across SOC (x) at constant hour (y).
  */
 function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
-  const { x, y } = buildChartData(data);
-  const { targetSocs, targetHours, matrix, highlightHour } = data;
+  const { x, y, isPrice } = buildChartData(data);
+  const { targetSocs, targetHours, matrix, highlightHour, currentSoc } = data;
   const traces: Record<string, unknown>[] = [];
 
   if (highlightHour == null || targetHours.length === 0) return traces;
@@ -126,11 +144,11 @@ function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
   const lineZ: (number | null)[] = [];
 
   for (let s = 0; s < targetSocs.length; s++) {
-    const v = matrix[h][s];
-    if (!Number.isNaN(v)) {
+    const z = zValue(matrix, h, s, currentSoc, targetSocs, isPrice);
+    if (!Number.isNaN(z)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
-      lineZ.push(v / CT_PER_MWH + 0.1);
+      lineZ.push(z + 0.1);
     } else {
       if (lineX.length > 0) {
         lineX.push(null as unknown as string);
@@ -164,7 +182,9 @@ export function render3DChart(
   data: ChartData,
   onReady?: () => void
 ): void {
-  const { x, y, z, text } = buildChartData(data);
+  const { x, y, z, text, isPrice } = buildChartData(data);
+  const zAxisTitle = isPrice ? 'Price (ct/kWh × Δ%)' : 'Avg Price (ct/kWh)';
+  const chartTitle = isPrice ? 'Price (ct/kWh × Δ%) by Target SOC and Target Hour' : 'Average Price (ct/kWh) by Target SOC and Target Hour';
 
   const surfaceTrace = {
     x,
@@ -191,11 +211,11 @@ export function render3DChart(
   };
 
   const layout = {
-    title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
+    title: { text: chartTitle },
     scene: {
       xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
       yaxis: { title: { text: 'Target Hour' }, showspikes: false },
-      zaxis: { title: { text: 'Avg Price (ct/kWh)' }, showspikes: false },
+      zaxis: { title: { text: zAxisTitle }, showspikes: false },
       camera: sceneCamera,
     },
     margin: { l: 0, r: 0, b: 0, t: 40 },
@@ -219,7 +239,9 @@ export function update3DChart(
   data: ChartData,
   onReady?: () => void
 ): void {
-  const { x, y, z, text } = buildChartData(data);
+  const { x, y, z, text, isPrice } = buildChartData(data);
+  const zAxisTitle = isPrice ? 'Price (ct/kWh × Δ%)' : 'Avg Price (ct/kWh)';
+  const chartTitle = isPrice ? 'Price (ct/kWh × Δ%) by Target SOC and Target Hour' : 'Average Price (ct/kWh) by Target SOC and Target Hour';
   const socLineTraces = buildSocLineTraces(data);
   const timeLineTraces = buildTargetTimeLineTraces(data);
 
@@ -245,11 +267,11 @@ export function update3DChart(
   };
 
   const layout = {
-    title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
+    title: { text: chartTitle },
     scene: {
       xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
       yaxis: { title: { text: 'Target Hour' }, showspikes: false },
-      zaxis: { title: { text: 'Avg Price (ct/kWh)' }, showspikes: false },
+      zaxis: { title: { text: zAxisTitle }, showspikes: false },
       camera: sceneCamera,
     },
     margin: { l: 0, r: 0, b: 0, t: 40 },
