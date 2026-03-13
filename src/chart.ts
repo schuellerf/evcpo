@@ -215,7 +215,7 @@ export function render3DChart(
     contours: {
       x: { show: false },
       y: { show: false },
-      z: { show: false, highlight: false },
+      z: { show: false, highlight: true },
     },
   };
 

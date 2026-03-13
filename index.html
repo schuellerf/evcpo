@@ -16,24 +16,10 @@
       <section class="controls">
         <div class="controls-column controls-left">
           <div class="form-row">
-            <label for="current-soc">Current SOC (%)</label>
-            <div class="form-row-inputs">
-              <input type="number" id="current-soc" min="0" max="100" value="20" />
-              <input type="range" id="current-soc-slider" min="0" max="100" value="20" />
-            </div>
-          </div>
-          <div class="form-row">
             <label for="target-soc">Target SOC (%)</label>
             <div class="form-row-inputs">
               <input type="number" id="target-soc" min="0" max="100" value="80" />
               <input type="range" id="target-soc-slider" min="0" max="100" value="80" />
-            </div>
-          </div>
-          <div class="form-row">
-            <label for="charge-speed">Charge speed (%/hour)</label>
-            <div class="form-row-inputs">
-              <input type="number" id="charge-speed" min="1" max="20" step="1" value="10" />
-              <input type="range" id="charge-speed-slider" min="1" max="20" value="10" />
             </div>
           </div>
         </div>
@@ -65,22 +51,41 @@
           <span id="power-multiplier-wrap" class="power-multiplier-wrap">
             <span id="power-kw">11.04</span> kW
           </span>
-          <div class="chart-toolbar-power">
-            <label>Amps</label>
-            <input type="range" id="charge-amps" min="6" max="16" value="16" />
-            <span id="charge-amps-value">16</span> A
-            <label class="toggle-label">
-              <input type="checkbox" id="charge-3phase" checked />
-              <span>3 phase</span>
-            </label>
-          </div>
         </div>
         <div id="chart" class="chart"></div>
-        <div class="voltage-selector">
-          <label>Voltage</label>
-          <label><input type="radio" name="voltage" value="230" checked /> 230V</label>
-          <label><input type="radio" name="voltage" value="110" /> 110V</label>
-        </div>
+        <section class="settings-below-chart">
+          <h3>Settings</h3>
+          <div class="settings-row">
+            <div class="form-row">
+              <label for="current-soc">Current SOC (%)</label>
+              <div class="form-row-inputs">
+                <input type="number" id="current-soc" min="0" max="100" value="20" />
+                <input type="range" id="current-soc-slider" min="0" max="100" value="20" />
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="charge-speed">Charge speed (%/hour)</label>
+              <div class="form-row-inputs">
+                <input type="number" id="charge-speed" min="1" max="20" step="1" value="10" />
+                <input type="range" id="charge-speed-slider" min="1" max="20" value="10" />
+              </div>
+            </div>
+            <div class="chart-toolbar-power">
+              <label>Amps</label>
+              <input type="range" id="charge-amps" min="6" max="16" value="16" />
+              <span id="charge-amps-value">16</span> A
+              <label class="toggle-label">
+                <input type="checkbox" id="charge-3phase" checked />
+                <span>3 phase</span>
+              </label>
+            </div>
+            <div class="voltage-selector">
+              <label>Voltage</label>
+              <label><input type="radio" name="voltage" value="230" checked /> 230V</label>
+              <label><input type="radio" name="voltage" value="110" /> 110V</label>
+            </div>
+          </div>
+        </section>
       </section>
     </div>
     <script type="module" src="/src/main.ts"></script>
