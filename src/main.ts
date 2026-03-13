@@ -131,11 +131,15 @@ async function updateChart(): Promise<void> {
     const targetSoc = parseFloat(
       (document.getElementById('target-soc') as HTMLInputElement).value
     );
+    const targetTimeInput = (document.getElementById('target-time') as HTMLInputElement).value;
+    const targetTime = targetTimeInput ? new Date(targetTimeInput) : null;
+    const highlightHour = targetTime ? (targetTime.setMinutes(0, 0, 0), targetTime.getTime()) : undefined;
     const chartData: ChartData = {
       targetHours,
       targetSocs,
       matrix,
       highlightSoc: targetSoc,
+      highlightHour,
     };
     chartEl.innerHTML = '';
     const chartDiv = document.createElement('div');
@@ -154,6 +158,7 @@ function init(): void {
   document.getElementById('update-chart')?.addEventListener('click', updateChart);
   document.getElementById('target-soc')?.addEventListener('input', updateChart);
   document.getElementById('target-soc')?.addEventListener('change', updateChart);
+  document.getElementById('target-time')?.addEventListener('change', updateChart);
   updateChart();
 }
 

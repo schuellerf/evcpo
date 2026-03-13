@@ -10,6 +10,8 @@ export interface ChartData {
   matrix: number[][];
   /** If set, only this SOC value gets a red highlight line (user's chosen target SOC). */
   highlightSoc?: number;
+  /** If set, draw a red line at this target time (timestamp of start of hour). */
+  highlightHour?: number;
 }
 
 const CT_PER_MWH = 10; // 1 Eur/MWh = 10 ct/kWh (approximately, for display)
@@ -100,6 +102,58 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
 }
 
 /**
+ * Build red Scatter3d line trace for the user's selected target time (highlightHour).
+ * Line runs across SOC (x) at constant hour (y).
+ */
+function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
+  const { x, y } = buildChartData(data);
+  const { targetSocs, targetHours, matrix, highlightHour } = data;
+  const traces: Record<string, unknown>[] = [];
+
+  if (highlightHour == null || targetHours.length === 0) return traces;
+
+  let h = targetHours.findIndex((ts) => ts === highlightHour);
+  if (h < 0) {
+    const closest = targetHours.reduce((a, b) =>
+      Math.abs(a - highlightHour) <= Math.abs(b - highlightHour) ? a : b
+    );
+    h = targetHours.indexOf(closest);
+  }
+  if (h < 0) return traces;
+
+  const lineX: string[] = [];
+  const lineY: string[] = [];
+  const lineZ: (number | null)[] = [];
+
+  for (let s = 0; s < targetSocs.length; s++) {
+    const v = matrix[h][s];
+    if (!Number.isNaN(v)) {
+      lineX.push(x[s]);
+      lineY.push(y[h]);
+      lineZ.push(v / CT_PER_MWH);
+    } else {
+      if (lineX.length > 0) {
+        lineX.push(null as unknown as string);
+        lineY.push(null as unknown as string);
+        lineZ.push(null);
+      }
+    }
+  }
+
+  traces.push({
+    x: lineX,
+    y: lineY,
+    z: lineZ,
+    type: 'scatter3d',
+    mode: 'lines',
+    line: { color: '#e63946', width: 4 },
+    showlegend: false,
+    hoverinfo: 'skip',
+  });
+  return traces;
+}
+
+/**
  * Render a 3D surface chart.
  * X: target hour (unique labels across 48h)
  * Y: target SOC (%)
@@ -120,9 +174,15 @@ export function render3DChart(
     colorscale: 'Viridis',
     hoverinfo: 'text' as const,
     text,
+    contours: {
+      x: { show: false },
+      y: { show: false },
+      z: { show: false },
+    },
   };
 
   const socLineTraces = buildSocLineTraces(data);
+  const timeLineTraces = buildTargetTimeLineTraces(data);
 
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
@@ -136,7 +196,7 @@ export function render3DChart(
 
   const config = { responsive: true };
 
-  const allTraces = [surfaceTrace, ...socLineTraces];
+  const allTraces = [surfaceTrace, ...socLineTraces, ...timeLineTraces];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Plotly.newPlot(containerId, allTraces as any, layout, config).then(() =>
     onReady?.()
@@ -153,6 +213,7 @@ export function update3DChart(
 ): void {
   const { x, y, z, text } = buildChartData(data);
   const socLineTraces = buildSocLineTraces(data);
+  const timeLineTraces = buildTargetTimeLineTraces(data);
 
   const surfaceTrace = {
     x,
@@ -162,6 +223,11 @@ export function update3DChart(
     type: 'surface' as const,
     colorscale: 'Viridis',
     hoverinfo: 'text' as const,
+    contours: {
+      x: { show: false },
+      y: { show: false },
+      z: { show: false },
+    },
   };
 
   const layout = {
@@ -174,7 +240,7 @@ export function update3DChart(
     margin: { l: 0, r: 0, b: 0, t: 40 },
   };
 
-  const allTraces = [surfaceTrace, ...socLineTraces];
+  const allTraces = [surfaceTrace, ...socLineTraces, ...timeLineTraces];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Plotly.react(containerId, allTraces as any, layout).then(() => onReady?.());
 }
