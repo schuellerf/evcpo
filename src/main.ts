@@ -47,12 +47,15 @@ function getTargetSocs(currentSoc: number): number[] {
 }
 
 function setDefaultTargetTime(): void {
-  const input = document.getElementById('target-time') as HTMLInputElement;
-  if (input && !input.value) {
+  const dateInput = document.getElementById('target-date') as HTMLInputElement;
+  const timeInput = document.getElementById('target-time') as HTMLInputElement;
+  if (dateInput && !dateInput.value) {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    input.value = tomorrow.toISOString().slice(0, 16);
+    dateInput.value = tomorrow.toISOString().slice(0, 10);
+  }
+  if (timeInput && !timeInput.value) {
+    timeInput.value = '10:00';
   }
 }
 
@@ -68,8 +71,8 @@ async function runCalculation(): Promise<void> {
   const targetSoc = parseFloat(
     (document.getElementById('target-soc') as HTMLInputElement).value
   );
-  const targetTimeStr = (document.getElementById('target-time') as HTMLInputElement)
-    .value;
+  const targetDateStr = (document.getElementById('target-date') as HTMLInputElement).value;
+  const targetTimeStr = (document.getElementById('target-time') as HTMLInputElement).value;
   const chargeSpeed = parseFloat(
     (document.getElementById('charge-speed') as HTMLInputElement).value
   );
@@ -77,7 +80,7 @@ async function runCalculation(): Promise<void> {
   if (!resultEl) return;
   resultEl.textContent = 'Loading…';
   try {
-    const targetTime = new Date(targetTimeStr);
+    const targetTime = new Date(`${targetDateStr}T${targetTimeStr}`);
     const nextHour = getNextFullHour(new Date());
     const endMs = targetTime.getTime();
     const startMs = nextHour.getTime();
@@ -131,8 +134,9 @@ async function updateChart(): Promise<void> {
     const targetSoc = parseFloat(
       (document.getElementById('target-soc') as HTMLInputElement).value
     );
-    const targetTimeInput = (document.getElementById('target-time') as HTMLInputElement).value;
-    const targetTime = targetTimeInput ? new Date(targetTimeInput) : null;
+    const targetDateStr = (document.getElementById('target-date') as HTMLInputElement).value;
+    const targetTimeStr = (document.getElementById('target-time') as HTMLInputElement).value;
+    const targetTime = targetDateStr && targetTimeStr ? new Date(`${targetDateStr}T${targetTimeStr}`) : null;
     const highlightHour = targetTime ? (targetTime.setMinutes(0, 0, 0), targetTime.getTime()) : undefined;
     const chartData: ChartData = {
       targetHours,
@@ -165,12 +169,44 @@ function refreshAll(): void {
   void updateChart();
 }
 
+const SLIDER_PAIRS: { numId: string; sliderId: string; min: number; max: number }[] = [
+  { numId: 'current-soc', sliderId: 'current-soc-slider', min: 0, max: 100 },
+  { numId: 'target-soc', sliderId: 'target-soc-slider', min: 0, max: 100 },
+  { numId: 'charge-speed', sliderId: 'charge-speed-slider', min: 1, max: 20 },
+];
+
 function init(): void {
   setDefaultTargetTime();
   const debouncedRefresh = debounce(refreshAll, 350);
 
-  const inputIds = ['current-soc', 'target-soc', 'target-time', 'charge-speed'];
-  for (const id of inputIds) {
+  for (const { numId, sliderId, min, max } of SLIDER_PAIRS) {
+    const numEl = document.getElementById(numId) as HTMLInputElement;
+    const sliderEl = document.getElementById(sliderId) as HTMLInputElement;
+    if (numEl && sliderEl) {
+      numEl.addEventListener('input', () => {
+        const v = Math.round(parseFloat(numEl.value) || min);
+        sliderEl.value = String(Math.max(min, Math.min(max, v)));
+        debouncedRefresh();
+      });
+      numEl.addEventListener('change', () => {
+        const v = Math.round(parseFloat(numEl.value) || min);
+        const clamped = Math.max(min, Math.min(max, v));
+        numEl.value = String(clamped);
+        sliderEl.value = String(clamped);
+        debouncedRefresh();
+      });
+      sliderEl.addEventListener('input', () => {
+        numEl.value = sliderEl.value;
+        debouncedRefresh();
+      });
+      sliderEl.addEventListener('change', () => {
+        numEl.value = sliderEl.value;
+        debouncedRefresh();
+      });
+    }
+  }
+
+  for (const id of ['target-date', 'target-time']) {
     document.getElementById(id)?.addEventListener('input', debouncedRefresh);
     document.getElementById(id)?.addEventListener('change', debouncedRefresh);
   }

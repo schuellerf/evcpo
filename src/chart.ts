@@ -78,7 +78,7 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
     if (!Number.isNaN(v)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
-      lineZ.push(v / CT_PER_MWH);
+      lineZ.push(v / CT_PER_MWH + 0.1);
     } else {
       if (lineX.length > 0) {
         lineX.push(null as unknown as string);
@@ -130,7 +130,7 @@ function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
     if (!Number.isNaN(v)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
-      lineZ.push(v / CT_PER_MWH);
+      lineZ.push(v / CT_PER_MWH + 0.1);
     } else {
       if (lineX.length > 0) {
         lineX.push(null as unknown as string);
@@ -184,12 +184,19 @@ export function render3DChart(
   const socLineTraces = buildSocLineTraces(data);
   const timeLineTraces = buildTargetTimeLineTraces(data);
 
+  const sceneCamera = {
+    eye: { x: 1.5, y: 1.5, z: 1.2 },
+    center: { x: 0, y: 0, z: -0.3 },
+    up: { x: 0, y: 0, z: 1 },
+  };
+
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
     scene: {
       xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
       yaxis: { title: { text: 'Target Hour' }, showspikes: false },
       zaxis: { title: { text: 'Avg Price (ct/kWh)' }, showspikes: false },
+      camera: sceneCamera,
     },
     margin: { l: 0, r: 0, b: 0, t: 40 },
   };
@@ -198,9 +205,10 @@ export function render3DChart(
 
   const allTraces = [surfaceTrace, ...socLineTraces, ...timeLineTraces];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Plotly.newPlot(containerId, allTraces as any, layout, config).then(() =>
-    onReady?.()
-  );
+  Plotly.newPlot(containerId, allTraces as any, layout, config).then(() => {
+    Plotly.relayout(containerId, { 'scene.camera': sceneCamera } as Partial<Plotly.Layout>);
+    onReady?.();
+  });
 }
 
 /**
@@ -230,12 +238,19 @@ export function update3DChart(
     },
   };
 
+  const sceneCamera = {
+    eye: { x: 1.5, y: 1.5, z: 1.2 },
+    center: { x: 0, y: 0, z: 0 },
+    up: { x: 0, y: 0, z: 1 },
+  };
+
   const layout = {
     title: { text: 'Average Price (ct/kWh) by Target SOC and Target Hour' },
     scene: {
       xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
       yaxis: { title: { text: 'Target Hour' }, showspikes: false },
       zaxis: { title: { text: 'Avg Price (ct/kWh)' }, showspikes: false },
+      camera: sceneCamera,
     },
     margin: { l: 0, r: 0, b: 0, t: 40 },
   };
