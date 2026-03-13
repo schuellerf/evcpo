@@ -212,11 +212,9 @@ export function render3DChart(
     colorscale: 'Viridis',
     hoverinfo: 'text' as const,
     text,
-    contours: {
-      x: { show: false },
-      y: { show: false },
-      z: { show: false, highlight: true },
-    },
+    contours: isPrice
+      ? { x: { show: false, highlight: false }, y: { show: false, highlight: false }, z: { show: false, highlight: true, highlightcolor: '#22c55e' } }
+      : { x: { show: false, highlight: true }, y: { show: false, highlight: true }, z: { show: false, highlight: false } },
   };
 
   const socLineTraces = buildSocLineTraces(data);
@@ -271,11 +269,9 @@ export function update3DChart(
     type: 'surface' as const,
     colorscale: 'Viridis',
     hoverinfo: 'text' as const,
-    contours: {
-      x: { show: false, highlight: false },
-      y: { show: false, highlight: false },
-      z: { show: false, highlight: false },
-    },
+    contours: isPrice
+      ? { x: { show: false, highlight: false }, y: { show: false, highlight: false }, z: { show: false, highlight: true, highlightcolor: '#22c55e' } }
+      : { x: { show: false, highlight: true }, y: { show: false, highlight: true }, z: { show: false, highlight: false } },
   };
 
   const sceneCamera = {
