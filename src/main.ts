@@ -161,7 +161,9 @@ async function updateChart(): Promise<void> {
       targetSocs,
       matrix,
       currentSoc,
+      chargeSpeed,
       zMode: isPriceMode ? 'price' : 'ct-per-kwh',
+      powerKw: getPowerKw(),
       highlightSoc: targetSoc,
       highlightHour,
     };
@@ -237,17 +239,17 @@ function init(): void {
   for (const id of powerInputs) {
     document.getElementById(id)?.addEventListener('input', () => {
       updatePowerDisplay();
-      void updateChart();
+      debouncedRefresh();
     });
     document.getElementById(id)?.addEventListener('change', () => {
       updatePowerDisplay();
-      void updateChart();
+      debouncedRefresh();
     });
   }
   document.querySelectorAll('input[name="voltage"]').forEach((el) => {
     el.addEventListener('change', () => {
       updatePowerDisplay();
-      void updateChart();
+      debouncedRefresh();
     });
   });
 
