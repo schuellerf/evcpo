@@ -15,10 +15,18 @@ function getNextFullHour(date: Date): Date {
   return next;
 }
 
+/** Start of the current hour (e.g. 14:30 -> 14:00). Used for chart range. */
+function getStartOfCurrentHour(date: Date): Date {
+  const d = new Date(date);
+  d.setMinutes(0, 0, 0);
+  return d;
+}
+
+/** All full hours from now (current hour) until tomorrow 23:00 inclusive. */
 function getTargetHoursUntilTomorrow23(): Date[] {
   const now = new Date();
   const hours: Date[] = [];
-  let cursor = getNextFullHour(now);
+  let cursor = getStartOfCurrentHour(now);
   const tomorrow23 = new Date(now);
   tomorrow23.setDate(tomorrow23.getDate() + 1);
   tomorrow23.setHours(23, 0, 0, 0);
@@ -31,7 +39,7 @@ function getTargetHoursUntilTomorrow23(): Date[] {
 
 function getTargetSocs(currentSoc: number): number[] {
   const socs: number[] = [];
-  const step = 10;
+  const step = 5;
   let s = Math.max(currentSoc, 20);
   if (s % step !== 0) s = Math.ceil(s / step) * step;
   for (; s <= 100; s += step) socs.push(s);
@@ -107,9 +115,9 @@ async function updateChart(): Promise<void> {
       return;
     }
     const targetHours = targetHourDates.map((d) => d.getTime());
+    const firstHour = targetHourDates[0];
     const lastHour = targetHourDates[targetHourDates.length - 1];
-    const nextHour = getNextFullHour(new Date());
-    const startMs = nextHour.getTime();
+    const startMs = firstHour.getTime();
     const endMs = lastHour.getTime() + 3600 * 1000;
     const priceSlots = await fetchPriceData(startMs, endMs);
     const targetSocs = getTargetSocs(currentSoc);
@@ -144,6 +152,9 @@ function init(): void {
   setDefaultTargetTime();
   document.getElementById('calculate')?.addEventListener('click', runCalculation);
   document.getElementById('update-chart')?.addEventListener('click', updateChart);
+  document.getElementById('target-soc')?.addEventListener('input', updateChart);
+  document.getElementById('target-soc')?.addEventListener('change', updateChart);
+  updateChart();
 }
 
 init();
