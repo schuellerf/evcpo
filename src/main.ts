@@ -3,8 +3,14 @@
  */
 
 import { fetchPriceData } from './api';
-import { getHoursNeeded, getCheapestAveragePrice, computeMatrix } from './calculator';
-import { render3DChart, type ChartData } from './chart';
+import { getHoursNeeded, getCheapestAveragePrice, getCheapestMaxPrice, computeMatrix, computeMaxMatrix } from './calculator';
+import {
+  render3DChart,
+  render2DFixedTimeChart,
+  render2DFixedSocChart,
+  render3DMaxChart,
+  type ChartData,
+} from './chart';
 
 const CT_PER_MWH = 10;
 
@@ -76,9 +82,14 @@ function updatePowerDisplay(): void {
   if (powerKwEl) powerKwEl.textContent = getPowerKw().toFixed(2);
 }
 
-function formatResult(hours: number, avgPriceEurMWh: number): string {
+function formatResult(hours: number, avgPriceEurMWh: number, maxPriceEurMWh?: number): string {
   const ct = (avgPriceEurMWh / CT_PER_MWH).toFixed(2);
-  return `Charge for ${hours} hour${hours === 1 ? '' : 's'}. Average price: ${ct} ct/kWh`;
+  let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}. Average price: ${ct} ct/kWh`;
+  if (maxPriceEurMWh != null && !Number.isNaN(maxPriceEurMWh)) {
+    const maxCt = (maxPriceEurMWh / CT_PER_MWH).toFixed(2);
+    s += `. Max price: ${maxCt} ct/kWh`;
+  }
+  return s;
 }
 
 async function runCalculation(): Promise<void> {
@@ -113,7 +124,8 @@ async function runCalculation(): Promise<void> {
       resultEl.textContent = `Not enough price slots. Need ${hoursNeeded} hours, got ${slots.length}.`;
       return;
     }
-    resultEl.textContent = formatResult(hoursNeeded, avgPrice);
+    const maxPrice = getCheapestMaxPrice(slots, hoursNeeded);
+    resultEl.textContent = formatResult(hoursNeeded, avgPrice, maxPrice);
   } catch (e) {
     resultEl.textContent = `Error: ${e instanceof Error ? e.message : String(e)}`;
   }
@@ -151,6 +163,14 @@ async function updateChart(): Promise<void> {
       targetSocs,
       priceSlots
     );
+    const maxMatrix = computeMaxMatrix(
+      currentSoc,
+      evCapacity,
+      powerKw,
+      targetHours,
+      targetSocs,
+      priceSlots
+    );
     const targetSoc = parseFloat(
       (document.getElementById('target-soc') as HTMLInputElement).value
     );
@@ -163,6 +183,7 @@ async function updateChart(): Promise<void> {
       targetHours,
       targetSocs,
       matrix,
+      maxMatrix,
       currentSoc,
       evCapacity,
       zMode: isPriceMode ? 'price' : 'ct-per-kwh',
@@ -176,6 +197,9 @@ async function updateChart(): Promise<void> {
     chartDiv.className = 'chart-inner';
     chartEl.appendChild(chartDiv);
     render3DChart('plotly-chart', chartData);
+    render2DFixedTimeChart('chart-2d-fixed-time', chartData);
+    render2DFixedSocChart('chart-2d-fixed-soc', chartData);
+    render3DMaxChart('chart-3d-max', chartData);
   } catch (e) {
     chartEl.innerHTML = `<p class="chart-error">Error: ${e instanceof Error ? e.message : String(e)}</p>`;
   }
