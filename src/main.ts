@@ -205,11 +205,11 @@ async function updateChart(): Promise<void> {
     render2DFixedSocChart('chart-2d-fixed-soc', chartData);
     render2DFixedTimeMaxChart('chart-2d-fixed-time-max', chartData);
     render2DFixedSocMaxChart('chart-2d-fixed-soc-max', chartData);
-    render3DMaxChart('chart-3d-max', chartData);
+    render3DMaxChart('chart-3d-max-inner', chartData);
     requestAnimationFrame(() => {
       const visiblePanel = document.querySelector('.tab-panel.active');
       if (visiblePanel) {
-        ['plotly-chart', 'chart-3d-max', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
+        ['plotly-chart', 'chart-3d-max-inner', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
           const el = document.getElementById(id);
           if (el?.querySelector('.plotly') && visiblePanel.contains(el)) {
             Plotly.Plots.resize(el);
@@ -306,7 +306,7 @@ function init(): void {
       const panel = document.getElementById(`tab-panel-${tab}`);
       if (panel) panel.classList.add('active');
       requestAnimationFrame(() => {
-        ['plotly-chart', 'chart-3d-max', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
+        ['plotly-chart', 'chart-3d-max-inner', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
           const el = document.getElementById(id);
           if (el?.querySelector('.plotly')) {
             Plotly.Plots.resize(el);
