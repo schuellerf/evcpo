@@ -93,7 +93,7 @@ export function computeMatrix(
     for (let s = 0; s < targetSocs.length; s++) {
       const targetSoc = targetSocs[s];
       const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, capacityKwh, powerKw);
-      const avg = getCheapestAveragePrice(slotsUntilTarget, hoursNeeded);
+      const avg = hoursNeeded === 0 ? 0 : getCheapestAveragePrice(slotsUntilTarget, hoursNeeded);
       row.push(avg);
     }
     matrix.push(row);
@@ -126,7 +126,7 @@ export function computeMaxMatrix(
     for (let s = 0; s < targetSocs.length; s++) {
       const targetSoc = targetSocs[s];
       const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, capacityKwh, powerKw);
-      const max = getCheapestMaxPrice(slotsUntilTarget, hoursNeeded);
+      const max = hoursNeeded === 0 ? 0 : getCheapestMaxPrice(slotsUntilTarget, hoursNeeded);
       row.push(max);
     }
     matrix.push(row);

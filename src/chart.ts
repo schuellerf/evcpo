@@ -359,7 +359,7 @@ export function render2DFixedTimeChart(
   const layout = {
     title: { text: `Price at ${hourLabel} by Target SOC` },
     xaxis: { title: { text: 'Target SOC (%)' }, gridcolor: '#333' },
-    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333' },
+    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 40, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -423,7 +423,7 @@ export function render2DFixedSocChart(
   const layout = {
     title: { text: `Price by Target Hour (Target SOC: ${highlightSoc}%)` },
     xaxis: { title: { text: 'Target Hour' }, gridcolor: '#333', tickangle: -45 },
-    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333' },
+    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 80, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -477,6 +477,10 @@ export function render3DMaxChart(
       : { x: { show: false, highlight: true }, y: { show: false, highlight: true }, z: { show: false, highlight: false } },
   };
 
+  const maxChartDataForTraces: ChartData = { ...data, matrix: data.maxMatrix! };
+  const socLineTraces = buildSocLineTraces(maxChartDataForTraces);
+  const timeLineTraces = buildTargetTimeLineTraces(maxChartDataForTraces);
+
   const sceneCamera = {
     eye: { x: 1.5, y: 1.5, z: 1.2 },
     center: { x: 0, y: 0, z: -0.3 },
@@ -496,8 +500,9 @@ export function render3DMaxChart(
 
   const config = { responsive: true };
 
+  const allTraces = [surfaceTrace, ...socLineTraces, ...timeLineTraces];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Plotly.newPlot(containerId, [surfaceTrace] as any, layout, config).then(() => {
+  Plotly.newPlot(containerId, allTraces as any, layout, config).then(() => {
     Plotly.relayout(containerId, { 'scene.camera': sceneCamera } as Partial<Plotly.Layout>);
     onReady?.();
   });

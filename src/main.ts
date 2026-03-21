@@ -44,12 +44,13 @@ function getTargetHoursUntilTomorrow23(): Date[] {
 }
 
 function getTargetSocs(currentSoc: number): number[] {
-  const socs: number[] = [];
+  const socs = new Set<number>();
   const step = 5;
+  if (currentSoc >= 20 && currentSoc <= 100) socs.add(currentSoc);
   let s = Math.max(currentSoc, 20);
   if (s % step !== 0) s = Math.ceil(s / step) * step;
-  for (; s <= 100; s += step) socs.push(s);
-  return socs.length ? socs : [100];
+  for (; s <= 100; s += step) socs.add(s);
+  return Array.from(socs).sort((a, b) => a - b);
 }
 
 function setDefaultTargetTime(): void {
