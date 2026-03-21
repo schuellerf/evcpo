@@ -4,6 +4,7 @@
 
 import { fetchPriceData } from './api';
 import { getHoursNeeded, getCheapestAveragePrice, getCheapestMaxPrice, computeMatrix, computeMaxMatrix } from './calculator';
+import Plotly from 'plotly.js-dist-min';
 import {
   render3DChart,
   render2DFixedTimeChart,
@@ -87,10 +88,10 @@ function updatePowerDisplay(): void {
 
 function formatResult(hours: number, avgPriceEurMWh: number, maxPriceEurMWh?: number): string {
   const ct = (avgPriceEurMWh / CT_PER_MWH).toFixed(2);
-  let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}. Average price: ${ct} ct/kWh`;
+  let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}.\nAverage price: ${ct} ct/kWh.`;
   if (maxPriceEurMWh != null && !Number.isNaN(maxPriceEurMWh)) {
     const maxCt = (maxPriceEurMWh / CT_PER_MWH).toFixed(2);
-    s += `. Max price: ${maxCt} ct/kWh`;
+    s += `\nMax price: ${maxCt} ct/kWh`;
   }
   return s;
 }
@@ -205,6 +206,17 @@ async function updateChart(): Promise<void> {
     render2DFixedTimeMaxChart('chart-2d-fixed-time-max', chartData);
     render2DFixedSocMaxChart('chart-2d-fixed-soc-max', chartData);
     render3DMaxChart('chart-3d-max', chartData);
+    requestAnimationFrame(() => {
+      const visiblePanel = document.querySelector('.tab-panel.active');
+      if (visiblePanel) {
+        ['plotly-chart', 'chart-3d-max', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el?.querySelector('.plotly') && visiblePanel.contains(el)) {
+            Plotly.Plots.resize(el);
+          }
+        });
+      }
+    });
   } catch (e) {
     chartEl.innerHTML = `<p class="chart-error">Error: ${e instanceof Error ? e.message : String(e)}</p>`;
   }
@@ -282,6 +294,25 @@ function init(): void {
     el.addEventListener('change', () => {
       updatePowerDisplay();
       debouncedRefresh();
+    });
+  });
+
+  document.querySelectorAll('.tab-button').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = (btn as HTMLElement).dataset.tab;
+      document.querySelectorAll('.tab-button').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+      btn.classList.add('active');
+      const panel = document.getElementById(`tab-panel-${tab}`);
+      if (panel) panel.classList.add('active');
+      requestAnimationFrame(() => {
+        ['plotly-chart', 'chart-3d-max', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
+          const el = document.getElementById(id);
+          if (el?.querySelector('.plotly')) {
+            Plotly.Plots.resize(el);
+          }
+        });
+      });
     });
   });
 

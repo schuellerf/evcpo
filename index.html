@@ -42,27 +42,39 @@
       </section>
 
       <section class="chart-section">
-        <div class="chart-toolbar">
-          <h2>Price by Target Hour & SOC</h2>
-          <label class="toggle-label">
-            <input type="checkbox" id="z-mode-price" />
-            <span>Price (€)</span>
-          </label>
-          <span id="power-multiplier-wrap" class="power-multiplier-wrap">
-            <span id="power-kw">11.04</span> kW
-          </span>
+        <div class="chart-tabs">
+          <button type="button" class="tab-button active" data-tab="max">Max Price</button>
+          <button type="button" class="tab-button" data-tab="avg">Average price</button>
         </div>
-        <div id="chart" class="chart"></div>
-        <div class="charts-secondary">
-          <div id="chart-2d-fixed-time" class="chart chart-2d"></div>
-          <div id="chart-2d-fixed-soc" class="chart chart-2d"></div>
-          <div id="chart-2d-fixed-time-max" class="chart chart-2d"></div>
-          <div id="chart-2d-fixed-soc-max" class="chart chart-2d"></div>
+        <div id="tab-panel-max" class="tab-panel active">
+          <div class="charts-secondary">
+            <div id="chart-2d-fixed-time-max" class="chart chart-2d"></div>
+            <div id="chart-2d-fixed-soc-max" class="chart chart-2d"></div>
+          </div>
+          <div id="chart-3d-max" class="chart chart-3d"></div>
         </div>
-        <div id="chart-3d-max" class="chart chart-3d-max"></div>
+        <div id="tab-panel-avg" class="tab-panel">
+          <div class="chart-toolbar-avg">
+            <label class="toggle-label">
+              <input type="checkbox" id="z-mode-price" />
+              <span>Price (€)</span>
+            </label>
+          </div>
+          <div class="charts-secondary">
+            <div id="chart-2d-fixed-time" class="chart chart-2d"></div>
+            <div id="chart-2d-fixed-soc" class="chart chart-2d"></div>
+          </div>
+          <div id="chart" class="chart chart-3d"></div>
+        </div>
         <section class="settings-below-chart">
           <h3>Settings</h3>
           <div class="settings-row">
+            <div class="form-row">
+              <label>Power</label>
+              <span id="power-multiplier-wrap" class="power-multiplier-wrap">
+                <span id="power-kw">11.04</span> kW
+              </span>
+            </div>
             <div class="form-row">
               <label for="current-soc">Current SOC (%)</label>
               <div class="form-row-inputs">
