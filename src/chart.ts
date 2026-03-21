@@ -213,6 +213,7 @@ export function render3DChart(
     z,
     type: 'surface' as const,
     colorscale: 'Viridis',
+    colorbar: { len: 0.9, y: 1, yanchor: 'top' as const },
     hoverinfo: 'text' as const,
     text,
     contours: isPrice
@@ -271,6 +272,7 @@ export function update3DChart(
     text,
     type: 'surface' as const,
     colorscale: 'Viridis',
+    colorbar: { len: 0.9, y: 1, yanchor: 'top' as const },
     hoverinfo: 'text' as const,
     contours: isPrice
       ? { x: { show: false, highlight: false }, y: { show: false, highlight: false }, z: { show: false, highlight: true, highlightcolor: '#22c55e' } }
@@ -626,6 +628,7 @@ export function render3DMaxChart(
     z,
     type: 'surface' as const,
     colorscale: 'Reds' as const,
+    colorbar: { len: 0.9, y: 1, yanchor: 'top' as const },
     hoverinfo: 'text' as const,
     text,
     contours: isPrice
