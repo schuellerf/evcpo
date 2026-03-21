@@ -346,9 +346,16 @@ export function render2DFixedTimeChart(
   })();
 
   const yAxisTitle = isPrice ? 'Price (€)' : 'Avg Price (ct/kWh)';
+  const unit = isPrice ? '€' : 'ct/kWh';
+  const text = x.map((pct, i) => {
+    const v = y[i];
+    return v != null ? `${pct}: ${(v as number).toFixed(2)} ${unit}` : '';
+  });
   const trace = {
     x,
     y,
+    text,
+    hoverinfo: 'text' as const,
     type: 'scatter' as const,
     mode: 'lines+markers' as const,
     line: { color: '#e63946' as const, width: 2 },
@@ -421,9 +428,15 @@ export function render2DFixedTimeMaxChart(
     });
   })();
 
+  const text = x.map((pct, i) => {
+    const v = y[i];
+    return v != null ? `${pct}: ${(v as number).toFixed(2)} ct/kWh` : '';
+  });
   const trace = {
     x,
     y,
+    text,
+    hoverinfo: 'text' as const,
     type: 'scatter' as const,
     mode: 'lines+markers' as const,
     line: { color: '#e63946' as const, width: 2 },
@@ -583,7 +596,7 @@ export function render2DFixedSocMaxChart(
 function buildMaxChartData(data: ChartData) {
   const maxMatrix = data.maxMatrix;
   if (!maxMatrix || maxMatrix.length === 0) return null;
-  return buildChartData({ ...data, matrix: maxMatrix }, { valueLabel: 'Max' });
+  return buildChartData({ ...data, matrix: maxMatrix, zMode: 'ct-per-kwh' }, { valueLabel: 'Max' });
 }
 
 /**
@@ -620,7 +633,7 @@ export function render3DMaxChart(
       : { x: { show: false, highlight: true }, y: { show: false, highlight: true }, z: { show: false, highlight: false } },
   };
 
-  const maxChartDataForTraces: ChartData = { ...data, matrix: data.maxMatrix! };
+  const maxChartDataForTraces: ChartData = { ...data, matrix: data.maxMatrix!, zMode: 'ct-per-kwh' };
   const socLineTraces = buildSocLineTraces(maxChartDataForTraces);
   const timeLineTraces = buildTargetTimeLineTraces(maxChartDataForTraces);
 
