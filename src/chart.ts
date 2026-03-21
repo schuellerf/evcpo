@@ -371,6 +371,81 @@ export function render2DFixedTimeChart(
 }
 
 /**
+ * Render 2D line chart: Max Price (ct/kWh) vs Target SOC at fixed target time.
+ * Always shows ct/kWh; Price (€) checkbox has no effect.
+ */
+export function render2DFixedTimeMaxChart(
+  containerId: string,
+  data: ChartData,
+  onReady?: () => void
+): void {
+  const maxMatrix = data.maxMatrix;
+  if (!maxMatrix || maxMatrix.length === 0) {
+    Plotly.purge(containerId);
+    return;
+  }
+
+  const { targetSocs, targetHours, highlightHour, currentSoc, evCapacity } = data;
+
+  if (highlightHour == null || targetHours.length === 0) {
+    Plotly.purge(containerId);
+    return;
+  }
+
+  let h = targetHours.findIndex((ts) => ts === highlightHour);
+  if (h < 0) {
+    const closest = targetHours.reduce((a, b) =>
+      Math.abs(a - highlightHour) <= Math.abs(b - highlightHour) ? a : b
+    );
+    h = targetHours.indexOf(closest);
+  }
+  if (h < 0) {
+    Plotly.purge(containerId);
+    return;
+  }
+
+  const x = targetSocs.map((s) => `${s}%`);
+  const y = targetSocs.map((_, s) => {
+    const v = zValue(maxMatrix, h, s, currentSoc, targetSocs, evCapacity, 0, false);
+    return Number.isNaN(v) ? null : v;
+  });
+
+  const hourLabel = (() => {
+    const d = new Date(highlightHour);
+    return d.toLocaleString(undefined, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  })();
+
+  const trace = {
+    x,
+    y,
+    type: 'scatter' as const,
+    mode: 'lines+markers' as const,
+    line: { color: '#e63946' as const, width: 2 },
+    marker: { size: 6 },
+    connectgaps: false,
+  };
+
+  const layout = {
+    title: { text: `Max Price at ${hourLabel} by Target SOC` },
+    xaxis: { title: { text: 'Target SOC (%)' }, gridcolor: '#333' },
+    yaxis: { title: { text: 'Max Price (ct/kWh)' }, gridcolor: '#333', rangemode: 'tozero' as const },
+    margin: { t: 40, b: 40, l: 50, r: 20 },
+    paper_bgcolor: 'transparent' as const,
+    plot_bgcolor: 'transparent' as const,
+    font: { color: '#eee' },
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Plotly.newPlot(containerId, [trace] as any, layout, { responsive: true }).then(() => onReady?.());
+}
+
+/**
  * Render 2D line chart: Price vs Target Hour at fixed target SOC.
  * Represents the red vertical line from the 3D chart.
  */
@@ -424,6 +499,74 @@ export function render2DFixedSocChart(
     title: { text: `Price by Target Hour (Target SOC: ${highlightSoc}%)` },
     xaxis: { title: { text: 'Target Hour' }, gridcolor: '#333', tickangle: -45 },
     yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
+    margin: { t: 40, b: 80, l: 50, r: 20 },
+    paper_bgcolor: 'transparent' as const,
+    plot_bgcolor: 'transparent' as const,
+    font: { color: '#eee' },
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Plotly.newPlot(containerId, [trace] as any, layout, { responsive: true }).then(() => onReady?.());
+}
+
+/**
+ * Render 2D line chart: Max Price (ct/kWh) vs Target Hour at fixed target SOC.
+ * Always shows ct/kWh; Price (€) checkbox has no effect.
+ */
+export function render2DFixedSocMaxChart(
+  containerId: string,
+  data: ChartData,
+  onReady?: () => void
+): void {
+  const maxMatrix = data.maxMatrix;
+  if (!maxMatrix || maxMatrix.length === 0) {
+    Plotly.purge(containerId);
+    return;
+  }
+
+  const { targetSocs, targetHours, highlightSoc, currentSoc, evCapacity } = data;
+
+  if (highlightSoc == null || targetSocs.length === 0) {
+    Plotly.purge(containerId);
+    return;
+  }
+
+  let s = targetSocs.findIndex((soc) => soc === highlightSoc);
+  if (s < 0) {
+    const closest = targetSocs.reduce((a, b) =>
+      Math.abs(a - highlightSoc) <= Math.abs(b - highlightSoc) ? a : b
+    );
+    s = targetSocs.indexOf(closest);
+  }
+  if (s < 0) {
+    Plotly.purge(containerId);
+    return;
+  }
+
+  const yLabels = targetHours.map((ts) => {
+    const d = new Date(ts);
+    return `${d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'numeric' })} ${d.getHours()}:00`;
+  });
+  const x = yLabels;
+  const y = targetHours.map((_, h) => {
+    const v = zValue(maxMatrix, h, s, currentSoc, targetSocs, evCapacity, 0, false);
+    return Number.isNaN(v) ? null : v;
+  });
+
+  const trace = {
+    x,
+    y,
+    type: 'scatter' as const,
+    mode: 'lines+markers' as const,
+    line: { color: '#e63946' as const, width: 2 },
+    marker: { size: 6 },
+    connectgaps: false,
+  };
+
+  const layout = {
+    title: { text: `Max Price by Target Hour (Target SOC: ${highlightSoc}%)` },
+    xaxis: { title: { text: 'Target Hour' }, gridcolor: '#333', tickangle: -45 },
+    yaxis: { title: { text: 'Max Price (ct/kWh)' }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 80, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,

@@ -8,6 +8,8 @@ import {
   render3DChart,
   render2DFixedTimeChart,
   render2DFixedSocChart,
+  render2DFixedTimeMaxChart,
+  render2DFixedSocMaxChart,
   render3DMaxChart,
   type ChartData,
 } from './chart';
@@ -200,6 +202,8 @@ async function updateChart(): Promise<void> {
     render3DChart('plotly-chart', chartData);
     render2DFixedTimeChart('chart-2d-fixed-time', chartData);
     render2DFixedSocChart('chart-2d-fixed-soc', chartData);
+    render2DFixedTimeMaxChart('chart-2d-fixed-time-max', chartData);
+    render2DFixedSocMaxChart('chart-2d-fixed-soc-max', chartData);
     render3DMaxChart('chart-3d-max', chartData);
   } catch (e) {
     chartEl.innerHTML = `<p class="chart-error">Error: ${e instanceof Error ? e.message : String(e)}</p>`;
