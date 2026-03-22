@@ -22,6 +22,10 @@ npm run preview
 
 Preview serves the built app (default port 4173). Use the proxy by running on localhost.
 
+### Static deployment
+
+The app is client-side only. `npm run build` outputs a static bundle to `dist/`. Deploy the entire `dist/` folder to any static host (nginx, Apache, Netlify, GitHub Pages, S3, etc.). No server-side setup required.
+
 ### Inputs
 
 - **Current SOC (%)** – Current state of charge of the battery
