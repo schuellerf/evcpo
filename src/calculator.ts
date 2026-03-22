@@ -4,6 +4,28 @@
 
 import type { PriceSlot } from './api';
 
+/** awattar HOURLY: constant costs (Beschaffungskomponente) in ct/kWh */
+const C_CT = 1.5;
+/** 20% MwSt */
+const VAT = 1.2;
+/** Default extra costs (Netznutzung, Umlagen, etc.) in ct/kWh */
+export const EXTRA_CT_DEFAULT = 13.5;
+const F = 0;
+
+/**
+ * Convert net price (Eur/MWh from API) to gross total (ct/kWh).
+ * Formula: total_ct = ((net_ct + |net_ct|×F + C) × VAT) + EXTRA
+ * @see https://www.awattar.at/tariffs/hourly
+ * @see https://github.com/schuellerf/ioBroker.awattar/blob/new_price_calc/admin/index_m.html
+ */
+export function netToGrossCtPerKwh(netEurMWh: number, extraCt = EXTRA_CT_DEFAULT): number {
+  if (!Number.isFinite(netEurMWh)) return NaN;
+  const netCt = netEurMWh / 10;
+  const netFull = netCt + Math.abs(netCt) * F + C_CT;
+  const grossCt = netFull * VAT;
+  return grossCt + extraCt;
+}
+
 /**
  * Number of hours needed to charge from current SOC to target SOC.
  * Uses EV capacity (kWh) and charging power (kW).

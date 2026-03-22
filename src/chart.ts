@@ -3,7 +3,7 @@
  */
 
 import Plotly from 'plotly.js-dist-min';
-import { getHoursNeeded } from './calculator';
+import { getHoursNeeded, netToGrossCtPerKwh, EXTRA_CT_DEFAULT } from './calculator';
 
 export type ZMode = 'ct-per-kwh' | 'price';
 
@@ -25,13 +25,22 @@ export interface ChartData {
   highlightHour?: number;
   /** Max price matrix (Eur/MWh) for the 3D max-price chart. Same layout as matrix. */
   maxMatrix?: number[][];
+  /** When true, display gross prices (net + 1.5 ct/kWh + VAT + extra) instead of net. */
+  useGrossPrices?: boolean;
+  /** Extra costs (ct/kWh) for gross mode. Default 13.5. */
+  extraCt?: number;
 }
 
-const CT_PER_MWH = 10; // 1 Eur/MWh = 10 ct/kWh (approximately, for display)
+const CT_PER_MWH = 10; // 1 Eur/MWh = 0.1 ct/kWh for net display
+
+function toCtPerKwh(v: number, useGross: boolean, extraCt: number): number {
+  return useGross ? netToGrossCtPerKwh(v, extraCt) : v / CT_PER_MWH;
+}
 
 function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) {
-  const { targetHours, targetSocs, matrix, currentSoc, evCapacity, zMode, powerKw = 0 } = data;
+  const { targetHours, targetSocs, matrix, currentSoc, evCapacity, zMode, powerKw = 0, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
   const valueLabel = opts?.valueLabel ?? 'Avg';
+  const useGross = useGrossPrices;
 
   // X = target SOC, Y = target hour (swapped from original)
   const x = targetSocs.map((s) => `${s}%`);
@@ -51,7 +60,7 @@ function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) 
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
       if (Number.isNaN(v)) return null;
-      const ctPerKwh = v / CT_PER_MWH;
+      const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
       if (!isPrice) return ctPerKwh;
       const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       return (ctPerKwh * powerKw * hours) / 100;
@@ -61,7 +70,7 @@ function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) 
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
       if (Number.isNaN(v)) return `Target: ${y[h]} / ${x[s]} — Not enough hours`;
-      const ctPerKwh = v / CT_PER_MWH;
+      const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
       if (!isPrice) return `Target: ${y[h]} / ${x[s]} — ${valueLabel}: ${ctPerKwh.toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
       const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       const priceEur = (ctPerKwh * powerKw * hours) / 100;
@@ -79,11 +88,13 @@ function zValue(
   targetSocs: number[],
   evCapacity: number,
   powerKw: number,
-  isPrice: boolean
+  isPrice: boolean,
+  useGross = false,
+  extraCt = EXTRA_CT_DEFAULT
 ): number {
   const v = matrix[h]?.[s];
   if (v == null || Number.isNaN(v)) return NaN;
-  const ctPerKwh = v / CT_PER_MWH;
+  const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
   if (!isPrice) return ctPerKwh;
   const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
   return (ctPerKwh * powerKw * hours) / 100;
@@ -94,7 +105,7 @@ function zValue(
  */
 function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
   const { x, y, isPrice } = buildChartData(data);
-  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc, evCapacity, powerKw = 0 } = data;
+  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc, evCapacity, powerKw = 0, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
   const traces: Record<string, unknown>[] = [];
 
   if (highlightSoc == null) return traces;
@@ -113,7 +124,7 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
   const lineZ: (number | null)[] = [];
 
   for (let h = 0; h < targetHours.length; h++) {
-    const z = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice);
+    const z = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice, useGrossPrices, extraCt);
     if (!Number.isNaN(z)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
@@ -146,7 +157,7 @@ function buildSocLineTraces(data: ChartData): Record<string, unknown>[] {
  */
 function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
   const { x, y, isPrice } = buildChartData(data);
-  const { targetSocs, targetHours, matrix, highlightHour, currentSoc, evCapacity, powerKw = 0 } = data;
+  const { targetSocs, targetHours, matrix, highlightHour, currentSoc, evCapacity, powerKw = 0, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
   const traces: Record<string, unknown>[] = [];
 
   if (highlightHour == null || targetHours.length === 0) return traces;
@@ -165,7 +176,7 @@ function buildTargetTimeLineTraces(data: ChartData): Record<string, unknown>[] {
   const lineZ: (number | null)[] = [];
 
   for (let s = 0; s < targetSocs.length; s++) {
-    const z = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice);
+    const z = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice, useGrossPrices, extraCt);
     if (!Number.isNaN(z)) {
       lineX.push(x[s]);
       lineY.push(y[h]);
@@ -310,7 +321,7 @@ export function render2DFixedTimeChart(
   data: ChartData,
   onReady?: () => void
 ): void {
-  const { targetSocs, targetHours, matrix, highlightHour, currentSoc, evCapacity, powerKw = 0 } = data;
+  const { targetSocs, targetHours, matrix, highlightHour, currentSoc, evCapacity, powerKw = 0, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
   const isPrice = data.zMode === 'price';
 
   if (highlightHour == null || targetHours.length === 0) {
@@ -332,7 +343,7 @@ export function render2DFixedTimeChart(
 
   const x = targetSocs.map((s) => `${s}%`);
   const y = targetSocs.map((_, s) => {
-    const v = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice);
+    const v = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice, useGrossPrices, extraCt);
     return Number.isNaN(v) ? null : v;
   });
 
@@ -394,7 +405,7 @@ export function render2DFixedTimeMaxChart(
     return;
   }
 
-  const { targetSocs, targetHours, highlightHour, currentSoc, evCapacity } = data;
+  const { targetSocs, targetHours, highlightHour, currentSoc, evCapacity, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
 
   if (highlightHour == null || targetHours.length === 0) {
     Plotly.purge(containerId);
@@ -415,7 +426,7 @@ export function render2DFixedTimeMaxChart(
 
   const x = targetSocs.map((s) => `${s}%`);
   const y = targetSocs.map((_, s) => {
-    const v = zValue(maxMatrix, h, s, currentSoc, targetSocs, evCapacity, 0, false);
+    const v = zValue(maxMatrix, h, s, currentSoc, targetSocs, evCapacity, 0, false, useGrossPrices, extraCt);
     return Number.isNaN(v) ? null : v;
   });
 
@@ -469,7 +480,7 @@ export function render2DFixedSocChart(
   data: ChartData,
   onReady?: () => void
 ): void {
-  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc, evCapacity, powerKw = 0 } = data;
+  const { targetSocs, targetHours, matrix, highlightSoc, currentSoc, evCapacity, powerKw = 0, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
   const isPrice = data.zMode === 'price';
 
   if (highlightSoc == null || targetSocs.length === 0) {
@@ -495,7 +506,7 @@ export function render2DFixedSocChart(
   });
   const x = yLabels;
   const y = targetHours.map((_, h) => {
-    const v = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice);
+    const v = zValue(matrix, h, s, currentSoc, targetSocs, evCapacity, powerKw, isPrice, useGrossPrices, extraCt);
     return Number.isNaN(v) ? null : v;
   });
 
@@ -539,7 +550,7 @@ export function render2DFixedSocMaxChart(
     return;
   }
 
-  const { targetSocs, targetHours, highlightSoc, currentSoc, evCapacity } = data;
+  const { targetSocs, targetHours, highlightSoc, currentSoc, evCapacity, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
 
   if (highlightSoc == null || targetSocs.length === 0) {
     Plotly.purge(containerId);
@@ -564,7 +575,7 @@ export function render2DFixedSocMaxChart(
   });
   const x = yLabels;
   const y = targetHours.map((_, h) => {
-    const v = zValue(maxMatrix, h, s, currentSoc, targetSocs, evCapacity, 0, false);
+    const v = zValue(maxMatrix, h, s, currentSoc, targetSocs, evCapacity, 0, false, useGrossPrices, extraCt);
     return Number.isNaN(v) ? null : v;
   });
 

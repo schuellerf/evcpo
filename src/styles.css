@@ -259,7 +259,35 @@ header h1 {
 #result-text {
   font-size: 1.1rem;
   font-weight: 500;
-  white-space: pre-line;
+}
+
+#result-text sup a {
+  color: #4a9eff;
+  text-decoration: none;
+}
+
+#result-text sup a:hover {
+  text-decoration: underline;
+}
+
+.footnote {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.footnote[aria-hidden="true"] {
+  display: none;
+}
+
+.footnote a {
+  color: #4a9eff;
+  text-decoration: none;
+}
+
+.footnote a:hover {
+  text-decoration: underline;
 }
 
 .chart-section {

@@ -3,7 +3,7 @@
  */
 
 import { fetchPriceData } from './api';
-import { getHoursNeeded, getCheapestAveragePrice, getCheapestMaxPrice, computeMatrix, computeMaxMatrix } from './calculator';
+import { getHoursNeeded, getCheapestAveragePrice, getCheapestMaxPrice, computeMatrix, computeMaxMatrix, netToGrossCtPerKwh, EXTRA_CT_DEFAULT } from './calculator';
 import Plotly from 'plotly.js-dist-min';
 import {
   render3DChart,
@@ -86,6 +86,8 @@ function updatePowerDisplay(): void {
   if (powerKwEl) powerKwEl.textContent = getPowerKw().toFixed(2);
 }
 
+const NET_FN_SUP = '<sup><a href="#fn1">¹</a></sup>';
+
 function formatResult(
   hours: number,
   avgPriceEurMWh: number,
@@ -93,20 +95,36 @@ function formatResult(
   targetSoc: number,
   evCapacity: number,
   efficiency: number,
-  maxPriceEurMWh?: number
+  maxPriceEurMWh?: number,
+  useGrossPrices = false,
+  extraCt = EXTRA_CT_DEFAULT
 ): string {
-  const ct = (avgPriceEurMWh / CT_PER_MWH).toFixed(2);
-  let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}.\nAverage price: ${ct} ct/kWh.`;
-  if (maxPriceEurMWh != null && !Number.isNaN(maxPriceEurMWh)) {
-    const maxCt = (maxPriceEurMWh / CT_PER_MWH).toFixed(2);
-    s += `\nMax price: ${maxCt} ct/kWh`;
+  const isNet = !useGrossPrices;
+  const avgCtPerKwh = useGrossPrices
+    ? netToGrossCtPerKwh(avgPriceEurMWh, extraCt)
+    : avgPriceEurMWh / CT_PER_MWH;
+  const maxCtPerKwh =
+    maxPriceEurMWh != null && !Number.isNaN(maxPriceEurMWh)
+      ? useGrossPrices
+        ? netToGrossCtPerKwh(maxPriceEurMWh, extraCt)
+        : maxPriceEurMWh / CT_PER_MWH
+      : null;
+
+  const avgLabel = `Average price${isNet ? NET_FN_SUP : ''}`;
+  const maxLabel = `Max price${isNet ? NET_FN_SUP : ''}`;
+  const totalLabel = `Total price${isNet ? NET_FN_SUP : ''}`;
+  const per100Label = `Price / 100km${isNet ? NET_FN_SUP : ''}`;
+
+  let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}.<br>${avgLabel}: ${avgCtPerKwh.toFixed(2)} ct/kWh.`;
+  if (maxCtPerKwh != null) {
+    s += `<br>${maxLabel}: ${maxCtPerKwh.toFixed(2)} ct/kWh`;
   }
   const deltaPercent = Math.max(0, (targetSoc - currentSoc) / 100);
   const totalKwh = deltaPercent * evCapacity;
-  const totalPriceEur = (totalKwh * avgPriceEurMWh) / 1000;
-  const pricePer100kmEur = (efficiency * avgPriceEurMWh) / 1000;
-  s += `\nTotal price: ${totalPriceEur.toFixed(2)} €`;
-  s += `\nPrice / 100km: ${pricePer100kmEur.toFixed(2)} €`;
+  const totalPriceEur = (totalKwh * avgCtPerKwh) / 100;
+  const pricePer100kmEur = (efficiency * avgCtPerKwh) / 100;
+  s += `<br>${totalLabel}: ${totalPriceEur.toFixed(2)} €`;
+  s += `<br>${per100Label}: ${pricePer100kmEur.toFixed(2)} €`;
   return s;
 }
 
@@ -126,6 +144,7 @@ async function runCalculation(): Promise<void> {
   const resultEl = document.getElementById('result-text');
   if (!resultEl) return;
   resultEl.textContent = 'Loading…';
+  document.getElementById('footnote-net')?.setAttribute('aria-hidden', 'true');
   try {
     const targetTime = new Date(`${targetDateStr}T${targetTimeStr}`);
     const nextHour = getNextFullHour(new Date());
@@ -144,10 +163,23 @@ async function runCalculation(): Promise<void> {
     }
     const maxPrice = getCheapestMaxPrice(slots, hoursNeeded);
     const efficiency = Math.max(13, Math.min(45, parseFloat((document.getElementById('efficiency') as HTMLInputElement)?.value ?? '18')));
-    resultEl.textContent = formatResult(hoursNeeded, avgPrice, currentSoc, targetSoc, evCapacity, efficiency, maxPrice);
+    const useGrossPrices = (document.getElementById('use-gross-prices') as HTMLInputElement)?.checked ?? false;
+    const extraCt = EXTRA_CT_DEFAULT;
+    resultEl.innerHTML = formatResult(hoursNeeded, avgPrice, currentSoc, targetSoc, evCapacity, efficiency, maxPrice, useGrossPrices, extraCt);
+
+    const footnoteEl = document.getElementById('footnote-net');
+    if (footnoteEl) {
+      footnoteEl.setAttribute('aria-hidden', String(useGrossPrices));
+    }
+    if (!useGrossPrices) {
+      resultEl.setAttribute('aria-describedby', 'footnote-net');
+    } else {
+      resultEl.removeAttribute('aria-describedby');
+    }
   } catch (e) {
     resultEl.textContent = `Error: ${e instanceof Error ? e.message : String(e)}`;
   }
+  document.getElementById('footnote-net')?.setAttribute('aria-hidden', 'true');
 }
 
 async function updateChart(): Promise<void> {
@@ -198,6 +230,7 @@ async function updateChart(): Promise<void> {
     const targetTime = targetDateStr && targetTimeStr ? new Date(`${targetDateStr}T${targetTimeStr}`) : null;
     const highlightHour = targetTime ? (targetTime.setMinutes(0, 0, 0), targetTime.getTime()) : undefined;
     const isPriceMode = (document.getElementById('z-mode-price') as HTMLInputElement)?.checked ?? false;
+    const useGrossPrices = (document.getElementById('use-gross-prices') as HTMLInputElement)?.checked ?? false;
     const chartData: ChartData = {
       targetHours,
       targetSocs,
@@ -209,6 +242,8 @@ async function updateChart(): Promise<void> {
       powerKw,
       highlightSoc: targetSoc,
       highlightHour,
+      useGrossPrices,
+      extraCt: EXTRA_CT_DEFAULT,
     };
     chartEl.innerHTML = '';
     const chartDiv = document.createElement('div');
@@ -294,6 +329,8 @@ function init(): void {
   }
 
   document.getElementById('z-mode-price')?.addEventListener('change', () => void updateChart());
+
+  document.getElementById('use-gross-prices')?.addEventListener('change', debouncedRefresh);
 
   const powerInputs = ['charge-amps', 'charge-3phase'];
   for (const id of powerInputs) {

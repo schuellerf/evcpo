@@ -71,6 +71,10 @@
         <section class="settings-below-chart">
           <h3>Settings</h3>
           <div class="settings-row">
+            <label class="toggle-label" title="Net: EPEX Spot energy costs only. Gross: EPEX + 1.5 ct/kWh + VAT + extra costs (Netznutzung, Umlagen, etc.).">
+              <input type="checkbox" id="use-gross-prices" />
+              <span>Total gross prices</span>
+            </label>
             <div class="form-row">
               <label>Power</label>
               <span id="power-multiplier-wrap" class="power-multiplier-wrap">
@@ -115,6 +119,9 @@
           </div>
         </section>
       </section>
+      <aside id="footnote-net" class="footnote" aria-hidden="true">
+        <a id="fn1" href="#result-text">¹</a> Net prices: EPEX Spot energy costs only. Excludes Beschaffung (1.5 ct/kWh), VAT, grid fees, and levies.
+      </aside>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
