@@ -385,7 +385,7 @@ export function render2DFixedTimeChart(
   const layout = {
     title: { text: t('chartPriceAt', { hour: hourLabel }) },
     xaxis: { title: { text: t('chartTargetSoc') }, gridcolor: '#333' },
-    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
+    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'normal' as const },
     margin: { t: 40, b: 40, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -466,7 +466,7 @@ export function render2DFixedTimeMaxChart(
   const layout = {
     title: { text: t('chartMaxPriceAt', { hour: hourLabel }) },
     xaxis: { title: { text: t('chartTargetSoc') }, gridcolor: '#333' },
-    yaxis: { title: { text: t('chartMaxPrice') }, gridcolor: '#333', rangemode: 'tozero' as const },
+    yaxis: { title: { text: t('chartMaxPrice') }, gridcolor: '#333', rangemode: 'normal' as const },
     margin: { t: 40, b: 40, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -530,7 +530,7 @@ export function render2DFixedSocChart(
   const layout = {
     title: { text: t('chartPriceByHour', { soc: highlightSoc }) },
     xaxis: { title: { text: t('chartTargetHour') }, gridcolor: '#333', tickangle: -45 },
-    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
+    yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'normal' as const },
     margin: { t: 40, b: 80, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -598,7 +598,7 @@ export function render2DFixedSocMaxChart(
   const layout = {
     title: { text: t('chartMaxPriceByHour', { soc: highlightSoc }) },
     xaxis: { title: { text: t('chartTargetHour') }, gridcolor: '#333', tickangle: -45 },
-    yaxis: { title: { text: t('chartMaxPrice') }, gridcolor: '#333', rangemode: 'tozero' as const },
+    yaxis: { title: { text: t('chartMaxPrice') }, gridcolor: '#333', rangemode: 'normal' as const },
     margin: { t: 40, b: 80, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
