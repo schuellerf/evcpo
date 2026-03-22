@@ -64,6 +64,8 @@ const messages: Record<Locale, Record<string, string>> = {
     chartPriceByHour: 'Preis nach Zielstunde (Ziel-SOC: {soc}%)',
     chartMaxPriceByHour: 'Maximalpreis nach Zielstunde (Ziel-SOC: {soc}%)',
     maxPriceTabDescription: 'Setze diesen Maximalpreis als Limit in deiner Ladebox. Das Laden startet, wenn die Preise bei oder unter diesem Wert liegen – so erreichst du das berechnete Ergebnis (oder ein ähnlich gutes).',
+    barChartPrev: 'Vorheriger Tag',
+    barChartNext: 'Nächster Tag',
   },
   en: {
     appTitle: 'EV Charge Price Optimizer',
@@ -122,6 +124,8 @@ const messages: Record<Locale, Record<string, string>> = {
     chartPriceByHour: 'Price by Target Hour (Target SOC: {soc}%)',
     chartMaxPriceByHour: 'Max Price by Target Hour (Target SOC: {soc}%)',
     maxPriceTabDescription: 'Set this max price as the limit in your charging station. Charging will start when prices are at or below this value, so you achieve the calculated result (or similarly good).',
+    barChartPrev: 'Previous day',
+    barChartNext: 'Next day',
   },
 };
 

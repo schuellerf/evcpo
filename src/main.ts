@@ -6,6 +6,7 @@ import { fetchPriceData, clearPriceCache } from './api';
 import { getHoursNeeded, getCheapestAveragePrice, getCheapestMaxPrice, computeMatrix, computeMaxMatrix, netToGrossCtPerKwh, EXTRA_CT_DEFAULT } from './calculator';
 import { t, getLocale, setLocale, setRegion, getStoredRegion } from './i18n';
 import Plotly from 'plotly.js-dist-min';
+import { renderPriceBarChart } from './barChart';
 import {
   render3DChart,
   render2DFixedTimeChart,
@@ -17,6 +18,26 @@ import {
 } from './chart';
 
 const CT_PER_MWH = 10;
+
+let barChartDay: Date | null = null;
+
+function getBarChartDay(): Date {
+  if (barChartDay == null) {
+    const targetDateStr = (document.getElementById('target-date') as HTMLInputElement)?.value;
+    barChartDay = targetDateStr ? new Date(targetDateStr + 'T12:00:00') : new Date();
+    barChartDay.setHours(0, 0, 0, 0);
+  }
+  return barChartDay;
+}
+
+function getBarChartStartEnd(day: Date): { startMs: number; endMs: number } {
+  const start = new Date(day);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(day);
+  end.setDate(end.getDate() + 1);
+  end.setHours(0, 0, 0, 0);
+  return { startMs: start.getTime(), endMs: end.getTime() };
+}
 
 function getExtraCt(): number {
   const el = document.getElementById('extra-ct') as HTMLInputElement;
@@ -222,6 +243,7 @@ async function updateChart(): Promise<void> {
     const targetHourDates = getTargetHoursUntilTomorrow23();
     if (targetHourDates.length === 0) {
       chartEl.innerHTML = `<p>${t('noTargetHours')}</p>`;
+      Plotly.purge('chart-price-bars-inner');
       return;
     }
     const targetHours = targetHourDates.map((d) => d.getTime());
@@ -270,6 +292,26 @@ async function updateChart(): Promise<void> {
       useGrossPrices,
       extraCt: getExtraCt(),
     };
+    const slotsUntilTarget =
+      highlightHour != null
+        ? priceSlots.filter((s) => s.start_timestamp < highlightHour)
+        : [];
+    const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, evCapacity, powerKw);
+    const maxPriceCtPerKwh =
+      hoursNeeded > 0 && slotsUntilTarget.length >= hoursNeeded
+        ? getCheapestMaxPrice(slotsUntilTarget, hoursNeeded) / CT_PER_MWH
+        : null;
+
+    const { startMs: barStartMs, endMs: barEndMs } = getBarChartStartEnd(getBarChartDay());
+    const barChartSlots = await fetchPriceData(barStartMs, barEndMs);
+    const dayLabel = getBarChartDay().toLocaleDateString(undefined, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+    renderPriceBarChart('chart-price-bars-inner', barChartSlots, maxPriceCtPerKwh, dayLabel);
+
     chartEl.innerHTML = '';
     const chartDiv = document.createElement('div');
     chartDiv.id = 'plotly-chart';
@@ -282,6 +324,8 @@ async function updateChart(): Promise<void> {
     render2DFixedSocMaxChart('chart-2d-fixed-soc-max', chartData);
     render3DMaxChart('chart-3d-max-inner', chartData);
     requestAnimationFrame(() => {
+      const barChartEl = document.getElementById('chart-price-bars-inner');
+      if (barChartEl?.querySelector('.plotly')) Plotly.Plots.resize(barChartEl);
       const visiblePanel = document.querySelector('.tab-panel.active');
       if (visiblePanel) {
         ['plotly-chart', 'chart-3d-max-inner', 'chart-2d-fixed-time', 'chart-2d-fixed-soc', 'chart-2d-fixed-time-max', 'chart-2d-fixed-soc-max'].forEach((id) => {
@@ -295,6 +339,40 @@ async function updateChart(): Promise<void> {
   } catch (e) {
     chartEl.innerHTML = `<p class="chart-error">${t('errorPrefix')}${e instanceof Error ? e.message : String(e)}</p>`;
   }
+}
+
+async function updateBarChartOnly(): Promise<void> {
+  const day = getBarChartDay();
+  const { startMs, endMs } = getBarChartStartEnd(day);
+  const currentSoc = parseFloat((document.getElementById('current-soc') as HTMLInputElement)?.value ?? '20');
+  const targetSoc = parseFloat((document.getElementById('target-soc') as HTMLInputElement)?.value ?? '80');
+  const evCapacity = parseFloat((document.getElementById('ev-capacity') as HTMLInputElement)?.value ?? '60');
+  const powerKw = getPowerKw();
+  const targetDateStr = (document.getElementById('target-date') as HTMLInputElement)?.value;
+  const targetTimeStr = (document.getElementById('target-time') as HTMLInputElement)?.value;
+  const targetTime = targetDateStr && targetTimeStr ? new Date(`${targetDateStr}T${targetTimeStr}`) : null;
+  const highlightHour = targetTime ? (targetTime.setMinutes(0, 0, 0), targetTime.getTime()) : undefined;
+  const fetchEnd = highlightHour != null ? Math.max(endMs, highlightHour + 3600000) : endMs;
+  const allSlots = await fetchPriceData(startMs, fetchEnd);
+  const slotsUntilTarget =
+    highlightHour != null ? allSlots.filter((s) => s.start_timestamp < highlightHour) : [];
+  const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, evCapacity, powerKw);
+  const maxPriceCtPerKwh =
+    hoursNeeded > 0 && slotsUntilTarget.length >= hoursNeeded
+      ? getCheapestMaxPrice(slotsUntilTarget, hoursNeeded) / CT_PER_MWH
+      : null;
+  const barChartSlots = allSlots.filter((s) => s.start_timestamp >= startMs && s.start_timestamp < endMs);
+  const dayLabel = day.toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  renderPriceBarChart('chart-price-bars-inner', barChartSlots, maxPriceCtPerKwh, dayLabel);
+  requestAnimationFrame(() => {
+    const el = document.getElementById('chart-price-bars-inner');
+    if (el?.querySelector('.plotly')) Plotly.Plots.resize(el);
+  });
 }
 
 function debounce(fn: () => void, ms: number): () => void {
@@ -399,14 +477,33 @@ function init(): void {
     });
   }
 
-  for (const id of ['target-date', 'target-time']) {
-    document.getElementById(id)?.addEventListener('input', debouncedRefresh);
-    document.getElementById(id)?.addEventListener('change', debouncedRefresh);
-  }
+  document.getElementById('target-date')?.addEventListener('input', () => {
+    barChartDay = null;
+    debouncedRefresh();
+  });
+  document.getElementById('target-date')?.addEventListener('change', () => {
+    barChartDay = null;
+    debouncedRefresh();
+  });
+  document.getElementById('target-time')?.addEventListener('input', debouncedRefresh);
+  document.getElementById('target-time')?.addEventListener('change', debouncedRefresh);
 
   document.getElementById('z-mode-price')?.addEventListener('change', () => void updateChart());
 
   document.getElementById('use-gross-prices')?.addEventListener('change', debouncedRefresh);
+
+  document.getElementById('bar-chart-prev')?.addEventListener('click', () => {
+    const d = getBarChartDay();
+    d.setDate(d.getDate() - 1);
+    barChartDay = d;
+    void updateBarChartOnly();
+  });
+  document.getElementById('bar-chart-next')?.addEventListener('click', () => {
+    const d = getBarChartDay();
+    d.setDate(d.getDate() + 1);
+    barChartDay = d;
+    void updateBarChartOnly();
+  });
 
   const powerInputs = ['charge-amps', 'charge-3phase'];
   for (const id of powerInputs) {

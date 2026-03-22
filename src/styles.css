@@ -342,6 +342,50 @@ header h1 {
   text-decoration: underline;
 }
 
+.chart-price-bars {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  background: #16213e;
+  border-radius: 8px;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.chart-price-bars-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.chart-price-bars-toolbar button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #16213e;
+  color: #eee;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.chart-price-bars-toolbar button:hover {
+  background: #1a2a4a;
+  border-color: #4a9eff;
+}
+
+.chart-price-bars-day {
+  font-weight: 500;
+  min-width: 10rem;
+  text-align: center;
+}
+
+.chart-price-bars .chart-inner {
+  min-height: 220px;
+  background: #fff;
+  border-radius: 4px;
+}
+
 .chart-section {
   margin-top: 2rem;
 }
