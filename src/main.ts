@@ -86,13 +86,27 @@ function updatePowerDisplay(): void {
   if (powerKwEl) powerKwEl.textContent = getPowerKw().toFixed(2);
 }
 
-function formatResult(hours: number, avgPriceEurMWh: number, maxPriceEurMWh?: number): string {
+function formatResult(
+  hours: number,
+  avgPriceEurMWh: number,
+  currentSoc: number,
+  targetSoc: number,
+  evCapacity: number,
+  efficiency: number,
+  maxPriceEurMWh?: number
+): string {
   const ct = (avgPriceEurMWh / CT_PER_MWH).toFixed(2);
   let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}.\nAverage price: ${ct} ct/kWh.`;
   if (maxPriceEurMWh != null && !Number.isNaN(maxPriceEurMWh)) {
     const maxCt = (maxPriceEurMWh / CT_PER_MWH).toFixed(2);
     s += `\nMax price: ${maxCt} ct/kWh`;
   }
+  const deltaPercent = Math.max(0, (targetSoc - currentSoc) / 100);
+  const totalKwh = deltaPercent * evCapacity;
+  const totalPriceEur = (totalKwh * avgPriceEurMWh) / 1000;
+  const pricePer100kmEur = (efficiency * avgPriceEurMWh) / 1000;
+  s += `\nTotal price: ${totalPriceEur.toFixed(2)} €`;
+  s += `\nPrice / 100km: ${pricePer100kmEur.toFixed(2)} €`;
   return s;
 }
 
@@ -129,7 +143,8 @@ async function runCalculation(): Promise<void> {
       return;
     }
     const maxPrice = getCheapestMaxPrice(slots, hoursNeeded);
-    resultEl.textContent = formatResult(hoursNeeded, avgPrice, maxPrice);
+    const efficiency = Math.max(13, Math.min(45, parseFloat((document.getElementById('efficiency') as HTMLInputElement)?.value ?? '18')));
+    resultEl.textContent = formatResult(hoursNeeded, avgPrice, currentSoc, targetSoc, evCapacity, efficiency, maxPrice);
   } catch (e) {
     resultEl.textContent = `Error: ${e instanceof Error ? e.message : String(e)}`;
   }
@@ -239,6 +254,7 @@ const SLIDER_PAIRS: { numId: string; sliderId: string; min: number; max: number 
   { numId: 'current-soc', sliderId: 'current-soc-slider', min: 0, max: 100 },
   { numId: 'target-soc', sliderId: 'target-soc-slider', min: 0, max: 100 },
   { numId: 'ev-capacity', sliderId: 'ev-capacity-slider', min: 40, max: 100 },
+  { numId: 'efficiency', sliderId: 'efficiency-slider', min: 13, max: 45 },
 ];
 
 function init(): void {
