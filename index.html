@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -9,30 +9,36 @@
   <body>
     <div class="container">
       <header>
-        <h1>EV Charge Price Optimizer</h1>
-        <p class="subtitle">Optimize charging based on awattar.at electricity prices</p>
+        <div>
+          <h1 data-i18n="appTitle">EV Charge Price Optimizer</h1>
+          <p class="subtitle" data-i18n="subtitle">Optimize charging based on awattar electricity prices</p>
+        </div>
+        <div class="lang-selector">
+          <button type="button" class="lang-btn active" data-lang="de">DE</button>
+          <button type="button" class="lang-btn" data-lang="en">EN</button>
+        </div>
       </header>
 
       <section class="controls">
         <div class="controls-column controls-left">
           <div class="form-row form-row-split">
             <div>
-              <label for="target-date">Target date</label>
+              <label for="target-date" data-i18n="targetDate">Target date</label>
               <input type="date" id="target-date" />
             </div>
             <div>
-              <label for="target-time">Target time</label>
+              <label for="target-time" data-i18n="targetTime">Target time</label>
               <input type="time" id="target-time" value="10:00" />
             </div>
           </div>
           <div class="form-row">
-            <label for="result-text">Result</label>
+            <label for="result-text" data-i18n="result">Result</label>
             <p id="result-text" class="result-inline">—</p>
           </div>
         </div>
         <div class="controls-column controls-right">
           <div class="form-row">
-            <label for="target-soc">Target SOC (%)</label>
+            <label for="target-soc" data-i18n="targetSoc">Target SOC (%)</label>
             <div class="form-row-inputs">
               <input type="number" id="target-soc" min="0" max="100" value="80" />
               <input type="range" id="target-soc-slider" min="0" max="100" value="80" />
@@ -43,8 +49,8 @@
 
       <section class="chart-section">
         <div class="chart-tabs">
-          <button type="button" class="tab-button active" data-tab="max">Max Price</button>
-          <button type="button" class="tab-button" data-tab="avg">Average/Total price</button>
+          <button type="button" class="tab-button active" data-tab="max" data-i18n="maxPrice">Max Price</button>
+          <button type="button" class="tab-button" data-tab="avg" data-i18n="avgTotalPrice">Average/Total price</button>
         </div>
         <div id="tab-panel-max" class="tab-panel active">
           <div class="charts-secondary">
@@ -59,7 +65,7 @@
           <div class="chart-toolbar-avg">
             <label class="toggle-label">
               <input type="checkbox" id="z-mode-price" />
-              <span>Total Price (€)</span>
+              <span data-i18n="totalPriceEur">Total Price (€)</span>
             </label>
           </div>
           <div class="charts-secondary">
@@ -69,50 +75,61 @@
           <div id="chart" class="chart chart-3d"></div>
         </div>
         <section class="settings-below-chart">
-          <h3>Settings</h3>
+          <h3 data-i18n="settings">Settings</h3>
           <div class="settings-row">
-            <label class="toggle-label" title="Net: EPEX Spot energy costs only. Gross: EPEX + 1.5 ct/kWh + VAT + extra costs (Netznutzung, Umlagen, etc.).">
+            <label class="toggle-label" data-i18n-title="grossPricesTooltip">
               <input type="checkbox" id="use-gross-prices" />
-              <span>Total gross prices</span>
+              <span data-i18n="totalGrossPrices">Total gross prices</span>
             </label>
             <div class="form-row">
-              <label>Power</label>
+              <label for="extra-ct" data-i18n-title="extraCtFootnote">
+                <span data-i18n="extraCtLabel"></span><sup><a href="#fn2">**</a></sup> (ct/kWh)
+              </label>
+              <input type="number" id="extra-ct" min="0" max="50" step="0.5" value="13.5" />
+            </div>
+            <div class="form-row">
+              <label data-i18n="power">Power</label>
               <span id="power-multiplier-wrap" class="power-multiplier-wrap">
                 <span id="power-kw">11.04</span> kW
               </span>
             </div>
             <div class="form-row">
-              <label for="current-soc">Current SOC (%)</label>
+              <label for="current-soc" data-i18n="currentSoc">Current SOC (%)</label>
               <div class="form-row-inputs">
                 <input type="number" id="current-soc" min="0" max="100" value="20" />
                 <input type="range" id="current-soc-slider" min="0" max="100" value="20" />
               </div>
             </div>
             <div class="form-row">
-              <label for="ev-capacity">EV Capacity (kWh)</label>
+              <label for="ev-capacity" data-i18n="evCapacity">EV Capacity (kWh)</label>
               <div class="form-row-inputs">
                 <input type="number" id="ev-capacity" min="40" max="100" value="60" />
                 <input type="range" id="ev-capacity-slider" min="40" max="100" value="60" />
               </div>
             </div>
             <div class="form-row">
-              <label for="efficiency">Usage (kWh/100km)</label>
+              <label for="efficiency" data-i18n="usage">Usage (kWh/100km)</label>
               <div class="form-row-inputs">
                 <input type="number" id="efficiency" min="13" max="45" value="18" />
                 <input type="range" id="efficiency-slider" min="13" max="45" value="18" />
               </div>
             </div>
             <div class="chart-toolbar-power">
-              <label>Amps</label>
+              <label data-i18n="amps">Amps</label>
               <input type="range" id="charge-amps" min="6" max="16" value="16" />
               <span id="charge-amps-value">16</span> A
               <label class="toggle-label">
                 <input type="checkbox" id="charge-3phase" checked />
-                <span>3 phase</span>
+                <span data-i18n="phase3">3 phase</span>
               </label>
             </div>
+            <div class="region-selector">
+              <label data-i18n="region">Region</label>
+              <label><input type="radio" name="region" value="at" checked /> <span data-i18n="austria">Österreich</span></label>
+              <label><input type="radio" name="region" value="de" /> <span data-i18n="germany">Deutschland</span></label>
+            </div>
             <div class="voltage-selector">
-              <label>Voltage</label>
+              <label data-i18n="voltage">Voltage</label>
               <label><input type="radio" name="voltage" value="230" checked /> 230V</label>
               <label><input type="radio" name="voltage" value="110" /> 110V</label>
             </div>
@@ -120,7 +137,10 @@
         </section>
       </section>
       <aside id="footnote-net" class="footnote" aria-hidden="true">
-        <a id="fn1" href="#result-text">*</a> Net prices: EPEX Spot energy costs only. Excludes Beschaffung (1.5 ct/kWh), VAT, grid fees, and levies.
+        <a id="fn1" href="#result-text">*</a> <span id="footnote-net-text">Net prices: EPEX Spot energy costs only. Excludes procurement (1.5 ct/kWh), VAT, grid fees, and levies.</span>
+      </aside>
+      <aside id="footnote-extra" class="footnote">
+        <a id="fn2" href="#extra-ct">**</a> <span data-i18n="extraCtFootnote">Grid fees, levies and other contract-specific costs. This is nearly impossible to determine accurately for a given contract with monthly flat fees etc. — users have to guesstimate.</span>
       </aside>
     </div>
     <script type="module" src="/src/main.ts"></script>

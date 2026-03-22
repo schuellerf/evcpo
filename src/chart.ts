@@ -4,6 +4,7 @@
 
 import Plotly from 'plotly.js-dist-min';
 import { getHoursNeeded, netToGrossCtPerKwh, EXTRA_CT_DEFAULT } from './calculator';
+import { t } from './i18n';
 
 export type ZMode = 'ct-per-kwh' | 'price';
 
@@ -39,7 +40,7 @@ function toCtPerKwh(v: number, useGross: boolean, extraCt: number): number {
 
 function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) {
   const { targetHours, targetSocs, matrix, currentSoc, evCapacity, zMode, powerKw = 0, useGrossPrices = false, extraCt = EXTRA_CT_DEFAULT } = data;
-  const valueLabel = opts?.valueLabel ?? 'Avg';
+  const valueLabel = opts?.valueLabel === 'Max' ? t('chartMax') : t('chartAvg');
   const useGross = useGrossPrices;
 
   // X = target SOC, Y = target hour (swapped from original)
@@ -69,12 +70,12 @@ function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) 
   const text = targetHours.map((_, h) =>
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
-      if (Number.isNaN(v)) return `Target: ${y[h]} / ${x[s]} — Not enough hours`;
+      if (Number.isNaN(v)) return `${t('chartTarget')}${y[h]} / ${x[s]} — ${t('chartNotEnoughHours')}`;
       const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
-      if (!isPrice) return `Target: ${y[h]} / ${x[s]} — ${valueLabel}: ${ctPerKwh.toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
+      if (!isPrice) return `${t('chartTarget')}${y[h]} / ${x[s]} — ${valueLabel}: ${ctPerKwh.toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
       const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       const priceEur = (ctPerKwh * powerKw * hours) / 100;
-      return `Target: ${y[h]} / ${x[s]} — ${valueLabel} price: €${priceEur.toFixed(2)} (${ctPerKwh.toFixed(2)} ct/kWh × ${powerKw.toFixed(2)} kW × ${hours}h)`;
+      return `${t('chartTarget')}${y[h]} / ${x[s]} — ${valueLabel} price: €${priceEur.toFixed(2)} (${ctPerKwh.toFixed(2)} ct/kWh × ${powerKw.toFixed(2)} kW × ${hours}h)`;
     })
   );
   return { x, y, z, text, isPrice };
@@ -215,8 +216,8 @@ export function render3DChart(
   onReady?: () => void
 ): void {
   const { x, y, z, text, isPrice } = buildChartData(data);
-  const zAxisTitle = isPrice ? 'Price (€)' : 'Avg Price (ct/kWh)';
-  const chartTitle = isPrice ? 'Price (€) by Target SOC and Target Hour' : 'Average Price (ct/kWh) by Target SOC and Target Hour';
+  const zAxisTitle = isPrice ? t('chartPriceEur') : t('chartAvgPrice');
+  const chartTitle = isPrice ? t('chartPriceBy') : t('chartAvgPriceBy');
 
   const surfaceTrace = {
     x,
@@ -244,8 +245,8 @@ export function render3DChart(
   const layout = {
     title: { text: chartTitle },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
-      yaxis: { title: { text: 'Target Hour' }, showspikes: false },
+      xaxis: { title: { text: t('chartTargetSoc') }, autorange: 'reversed' as const, showspikes: false },
+      yaxis: { title: { text: t('chartTargetHour') }, showspikes: false },
       zaxis: { title: { text: zAxisTitle }, showspikes: false },
       camera: sceneCamera,
     },
@@ -299,8 +300,8 @@ export function update3DChart(
   const layout = {
     title: { text: chartTitle },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
-      yaxis: { title: { text: 'Target Hour' }, showspikes: false },
+      xaxis: { title: { text: t('chartTargetSoc') }, autorange: 'reversed' as const, showspikes: false },
+      yaxis: { title: { text: t('chartTargetHour') }, showspikes: false },
       zaxis: { title: { text: zAxisTitle }, showspikes: false },
       camera: sceneCamera,
     },
@@ -358,7 +359,7 @@ export function render2DFixedTimeChart(
     });
   })();
 
-  const yAxisTitle = isPrice ? 'Price (€)' : 'Avg Price (ct/kWh)';
+  const yAxisTitle = isPrice ? t('chartPriceEur') : t('chartAvgPrice');
   const unit = isPrice ? '€' : 'ct/kWh';
   const text = x.map((pct, i) => {
     const v = y[i];
@@ -377,8 +378,8 @@ export function render2DFixedTimeChart(
   };
 
   const layout = {
-    title: { text: `Price at ${hourLabel} by Target SOC` },
-    xaxis: { title: { text: 'Target SOC (%)' }, gridcolor: '#333' },
+    title: { text: t('chartPriceAt', { hour: hourLabel }) },
+    xaxis: { title: { text: t('chartTargetSoc') }, gridcolor: '#333' },
     yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 40, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
@@ -458,9 +459,9 @@ export function render2DFixedTimeMaxChart(
   };
 
   const layout = {
-    title: { text: `Max Price at ${hourLabel} by Target SOC` },
-    xaxis: { title: { text: 'Target SOC (%)' }, gridcolor: '#333' },
-    yaxis: { title: { text: 'Max Price (ct/kWh)' }, gridcolor: '#333', rangemode: 'tozero' as const },
+    title: { text: t('chartMaxPriceAt', { hour: hourLabel }) },
+    xaxis: { title: { text: t('chartTargetSoc') }, gridcolor: '#333' },
+    yaxis: { title: { text: t('chartMaxPrice') }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 40, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -510,7 +511,7 @@ export function render2DFixedSocChart(
     return Number.isNaN(v) ? null : v;
   });
 
-  const yAxisTitle = isPrice ? 'Price (€)' : 'Avg Price (ct/kWh)';
+  const yAxisTitle = isPrice ? t('chartPriceEur') : t('chartAvgPrice');
   const trace = {
     x,
     y,
@@ -522,8 +523,8 @@ export function render2DFixedSocChart(
   };
 
   const layout = {
-    title: { text: `Price by Target Hour (Target SOC: ${highlightSoc}%)` },
-    xaxis: { title: { text: 'Target Hour' }, gridcolor: '#333', tickangle: -45 },
+    title: { text: t('chartPriceByHour', { soc: highlightSoc }) },
+    xaxis: { title: { text: t('chartTargetHour') }, gridcolor: '#333', tickangle: -45 },
     yaxis: { title: { text: yAxisTitle }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 80, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
@@ -590,9 +591,9 @@ export function render2DFixedSocMaxChart(
   };
 
   const layout = {
-    title: { text: `Max Price by Target Hour (Target SOC: ${highlightSoc}%)` },
-    xaxis: { title: { text: 'Target Hour' }, gridcolor: '#333', tickangle: -45 },
-    yaxis: { title: { text: 'Max Price (ct/kWh)' }, gridcolor: '#333', rangemode: 'tozero' as const },
+    title: { text: t('chartMaxPriceByHour', { soc: highlightSoc }) },
+    xaxis: { title: { text: t('chartTargetHour') }, gridcolor: '#333', tickangle: -45 },
+    yaxis: { title: { text: t('chartMaxPrice') }, gridcolor: '#333', rangemode: 'tozero' as const },
     margin: { t: 40, b: 80, l: 50, r: 20 },
     paper_bgcolor: 'transparent' as const,
     plot_bgcolor: 'transparent' as const,
@@ -628,10 +629,8 @@ export function render3DMaxChart(
   }
 
   const { x, y, z, text, isPrice } = built;
-  const zAxisTitle = isPrice ? 'Max Price (€)' : 'Max Price (ct/kWh)';
-  const chartTitle = isPrice
-    ? 'Max Price (€) by Target SOC and Target Hour'
-    : 'Max Price (ct/kWh) by Target SOC and Target Hour';
+  const zAxisTitle = isPrice ? t('chartMaxPriceEur') : t('chartMaxPrice');
+  const chartTitle = isPrice ? t('chartMaxPriceEurBy') : t('chartMaxPriceBy');
 
   const surfaceTrace = {
     x,
@@ -660,8 +659,8 @@ export function render3DMaxChart(
   const layout = {
     title: { text: chartTitle },
     scene: {
-      xaxis: { title: { text: 'Target SOC (%)' }, autorange: 'reversed' as const, showspikes: false },
-      yaxis: { title: { text: 'Target Hour' }, showspikes: false },
+      xaxis: { title: { text: t('chartTargetSoc') }, autorange: 'reversed' as const, showspikes: false },
+      yaxis: { title: { text: t('chartTargetHour') }, showspikes: false },
       zaxis: { title: { text: zAxisTitle }, showspikes: false },
       camera: sceneCamera,
     },

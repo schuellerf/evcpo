@@ -2,8 +2,9 @@
  * EV Charge Price Optimizer - main entry point.
  */
 
-import { fetchPriceData } from './api';
+import { fetchPriceData, clearPriceCache } from './api';
 import { getHoursNeeded, getCheapestAveragePrice, getCheapestMaxPrice, computeMatrix, computeMaxMatrix, netToGrossCtPerKwh, EXTRA_CT_DEFAULT } from './calculator';
+import { t, getLocale, setLocale, setRegion, getStoredRegion } from './i18n';
 import Plotly from 'plotly.js-dist-min';
 import {
   render3DChart,
@@ -16,6 +17,29 @@ import {
 } from './chart';
 
 const CT_PER_MWH = 10;
+
+function getExtraCt(): number {
+  const el = document.getElementById('extra-ct') as HTMLInputElement;
+  if (!el) return EXTRA_CT_DEFAULT;
+  const v = parseFloat(el.value);
+  if (!Number.isFinite(v)) return EXTRA_CT_DEFAULT;
+  return Math.max(0, Math.min(50, v));
+}
+
+function applyTranslations(): void {
+  document.querySelectorAll<HTMLElement>('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    if (key) el.textContent = t(key);
+  });
+  document.querySelectorAll<HTMLElement>('[data-i18n-title]').forEach((el) => {
+    const key = el.getAttribute('data-i18n-title');
+    if (key) el.setAttribute('title', t(key));
+  });
+  const fnNet = document.getElementById('footnote-net-text');
+  if (fnNet) fnNet.textContent = t('footnoteNet');
+  document.title = t('appTitle');
+  document.documentElement.lang = getLocale() === 'de' ? 'de' : 'en';
+}
 
 function getNextFullHour(date: Date): Date {
   const next = new Date(date);
@@ -110,12 +134,13 @@ function formatResult(
         : maxPriceEurMWh / CT_PER_MWH
       : null;
 
-  const avgLabel = `Average price${isNet ? NET_FN_SUP : ''}`;
-  const maxLabel = `Max price${isNet ? NET_FN_SUP : ''}`;
-  const totalLabel = `Total price${isNet ? NET_FN_SUP : ''}`;
-  const per100Label = `Price / 100km${isNet ? NET_FN_SUP : ''}`;
+  const avgLabel = t('averagePrice') + (isNet ? NET_FN_SUP : '');
+  const maxLabel = t('maxPrice') + (isNet ? NET_FN_SUP : '');
+  const totalLabel = t('totalPrice') + (isNet ? NET_FN_SUP : '');
+  const per100Label = t('pricePer100km') + (isNet ? NET_FN_SUP : '');
 
-  let s = `Charge for ${hours} hour${hours === 1 ? '' : 's'}.<br>${avgLabel}: ${avgCtPerKwh.toFixed(2)} ct/kWh.`;
+  const chargeLine = hours === 1 ? t('chargeForHour') : t('chargeForHours', { hours });
+  let s = `${chargeLine}<br>${avgLabel}: ${avgCtPerKwh.toFixed(2)} ct/kWh.`;
   if (maxCtPerKwh != null) {
     s += `<br>${maxLabel}: ${maxCtPerKwh.toFixed(2)} ct/kWh`;
   }
@@ -143,7 +168,7 @@ async function runCalculation(): Promise<void> {
   const powerKw = getPowerKw();
   const resultEl = document.getElementById('result-text');
   if (!resultEl) return;
-  resultEl.textContent = 'Loading…';
+  resultEl.textContent = t('loading');
   document.getElementById('footnote-net')?.setAttribute('aria-hidden', 'true');
   try {
     const targetTime = new Date(`${targetDateStr}T${targetTimeStr}`);
@@ -151,20 +176,20 @@ async function runCalculation(): Promise<void> {
     const endMs = targetTime.getTime();
     const startMs = nextHour.getTime();
     if (startMs >= endMs) {
-      resultEl.textContent = 'Target time must be after the next full hour.';
+      resultEl.textContent = t('targetTimeError');
       return;
     }
     const slots = await fetchPriceData(startMs, endMs);
     const hoursNeeded = getHoursNeeded(currentSoc, targetSoc, evCapacity, powerKw);
     const avgPrice = getCheapestAveragePrice(slots, hoursNeeded);
     if (Number.isNaN(avgPrice)) {
-      resultEl.textContent = `Not enough price slots. Need ${hoursNeeded} hours, got ${slots.length}.`;
+      resultEl.textContent = t('notEnoughSlots', { need: hoursNeeded, got: slots.length });
       return;
     }
     const maxPrice = getCheapestMaxPrice(slots, hoursNeeded);
     const efficiency = Math.max(13, Math.min(45, parseFloat((document.getElementById('efficiency') as HTMLInputElement)?.value ?? '18')));
     const useGrossPrices = (document.getElementById('use-gross-prices') as HTMLInputElement)?.checked ?? false;
-    const extraCt = EXTRA_CT_DEFAULT;
+    const extraCt = getExtraCt();
     resultEl.innerHTML = formatResult(hoursNeeded, avgPrice, currentSoc, targetSoc, evCapacity, efficiency, maxPrice, useGrossPrices, extraCt);
 
     const footnoteEl = document.getElementById('footnote-net');
@@ -177,7 +202,7 @@ async function runCalculation(): Promise<void> {
       resultEl.removeAttribute('aria-describedby');
     }
   } catch (e) {
-    resultEl.textContent = `Error: ${e instanceof Error ? e.message : String(e)}`;
+    resultEl.textContent = t('errorPrefix') + (e instanceof Error ? e.message : String(e));
     document.getElementById('footnote-net')?.setAttribute('aria-hidden', 'true');
   }
 }
@@ -192,11 +217,11 @@ async function updateChart(): Promise<void> {
   const powerKw = getPowerKw();
   const chartEl = document.getElementById('chart');
   if (!chartEl) return;
-  chartEl.innerHTML = '<p class="chart-loading">Loading…</p>';
+  chartEl.innerHTML = `<p class="chart-loading">${t('loading')}</p>`;
   try {
     const targetHourDates = getTargetHoursUntilTomorrow23();
     if (targetHourDates.length === 0) {
-      chartEl.innerHTML = '<p>No target hours available.</p>';
+      chartEl.innerHTML = `<p>${t('noTargetHours')}</p>`;
       return;
     }
     const targetHours = targetHourDates.map((d) => d.getTime());
@@ -243,7 +268,7 @@ async function updateChart(): Promise<void> {
       highlightSoc: targetSoc,
       highlightHour,
       useGrossPrices,
-      extraCt: EXTRA_CT_DEFAULT,
+      extraCt: getExtraCt(),
     };
     chartEl.innerHTML = '';
     const chartDiv = document.createElement('div');
@@ -268,7 +293,7 @@ async function updateChart(): Promise<void> {
       }
     });
   } catch (e) {
-    chartEl.innerHTML = `<p class="chart-error">Error: ${e instanceof Error ? e.message : String(e)}</p>`;
+    chartEl.innerHTML = `<p class="chart-error">${t('errorPrefix')}${e instanceof Error ? e.message : String(e)}</p>`;
   }
 }
 
@@ -294,7 +319,48 @@ const SLIDER_PAIRS: { numId: string; sliderId: string; min: number; max: number 
 
 function init(): void {
   setDefaultTargetTime();
+
+  document.documentElement.lang = getLocale() === 'de' ? 'de' : 'en';
+  const savedRegion = getStoredRegion();
+  const regionRadio = document.querySelector(`input[name="region"][value="${savedRegion}"]`) as HTMLInputElement;
+  if (regionRadio) regionRadio.checked = true;
+
+  document.querySelectorAll('.lang-btn').forEach((btn) => {
+    const lang = (btn as HTMLElement).dataset.lang as 'de' | 'en';
+    if (!lang) return;
+    btn.classList.toggle('active', getLocale() === lang);
+    btn.addEventListener('click', () => {
+      setLocale(lang);
+      applyTranslations();
+      document.querySelectorAll('.lang-btn').forEach((b) => {
+        b.classList.toggle('active', (b as HTMLElement).dataset.lang === lang);
+      });
+      refreshAll();
+    });
+  });
+
   const debouncedRefresh = debounce(refreshAll, 350);
+
+  document.querySelectorAll('input[name="region"]').forEach((el) => {
+    el.addEventListener('change', () => {
+      const r = (el as HTMLInputElement).value as 'at' | 'de';
+      if (r === 'at' || r === 'de') {
+        setRegion(r);
+        clearPriceCache();
+        debouncedRefresh();
+      }
+    });
+  });
+
+  document.getElementById('extra-ct')?.addEventListener('input', debouncedRefresh);
+  document.getElementById('extra-ct')?.addEventListener('change', debouncedRefresh);
+
+  window.addEventListener('localechange', () => {
+    applyTranslations();
+    refreshAll();
+  });
+
+  applyTranslations();
 
   for (const { numId, sliderId, min, max } of SLIDER_PAIRS) {
     const numEl = document.getElementById(numId) as HTMLInputElement;
