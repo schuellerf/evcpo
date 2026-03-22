@@ -310,9 +310,9 @@ function refreshAll(): void {
   void updateChart();
 }
 
-const SLIDER_PAIRS: { numId: string; sliderId: string; min: number; max: number }[] = [
+const SLIDER_PAIRS: { numId: string; sliderId: string; min: number; max: number; step?: number }[] = [
   { numId: 'current-soc', sliderId: 'current-soc-slider', min: 0, max: 100 },
-  { numId: 'target-soc', sliderId: 'target-soc-slider', min: 0, max: 100 },
+  { numId: 'target-soc', sliderId: 'target-soc-slider', min: 0, max: 100, step: 5 },
   { numId: 'ev-capacity', sliderId: 'ev-capacity-slider', min: 40, max: 100 },
   { numId: 'efficiency', sliderId: 'efficiency-slider', min: 13, max: 45 },
 ];
@@ -362,31 +362,41 @@ function init(): void {
 
   applyTranslations();
 
-  for (const { numId, sliderId, min, max } of SLIDER_PAIRS) {
+  for (const { numId, sliderId, min, max, step } of SLIDER_PAIRS) {
     const numEl = document.getElementById(numId) as HTMLInputElement;
     const sliderEl = document.getElementById(sliderId) as HTMLInputElement;
-    if (numEl && sliderEl) {
-      numEl.addEventListener('input', () => {
-        const v = Math.round(parseFloat(numEl.value) || min);
-        sliderEl.value = String(Math.max(min, Math.min(max, v)));
-        debouncedRefresh();
-      });
-      numEl.addEventListener('change', () => {
-        const v = Math.round(parseFloat(numEl.value) || min);
-        const clamped = Math.max(min, Math.min(max, v));
-        numEl.value = String(clamped);
-        sliderEl.value = String(clamped);
-        debouncedRefresh();
-      });
-      sliderEl.addEventListener('input', () => {
-        numEl.value = sliderEl.value;
-        debouncedRefresh();
-      });
-      sliderEl.addEventListener('change', () => {
-        numEl.value = sliderEl.value;
-        debouncedRefresh();
-      });
-    }
+    if (!numEl || !sliderEl) continue;
+
+    const snap = (v: number): number => {
+      const clamped = Math.max(min, Math.min(max, v));
+      if (step == null) return Math.round(clamped);
+      return Math.round(clamped / step) * step;
+    };
+
+    numEl.addEventListener('input', () => {
+      const v = snap(parseFloat(numEl.value) || min);
+      numEl.value = String(v);
+      sliderEl.value = String(v);
+      debouncedRefresh();
+    });
+    numEl.addEventListener('change', () => {
+      const v = snap(parseFloat(numEl.value) || min);
+      numEl.value = String(v);
+      sliderEl.value = String(v);
+      debouncedRefresh();
+    });
+    sliderEl.addEventListener('input', () => {
+      const v = snap(parseFloat(sliderEl.value) || min);
+      numEl.value = String(v);
+      sliderEl.value = String(v);
+      debouncedRefresh();
+    });
+    sliderEl.addEventListener('change', () => {
+      const v = snap(parseFloat(sliderEl.value) || min);
+      numEl.value = String(v);
+      sliderEl.value = String(v);
+      debouncedRefresh();
+    });
   }
 
   for (const id of ['target-date', 'target-time']) {

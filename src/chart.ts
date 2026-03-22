@@ -61,9 +61,11 @@ function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) 
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
       if (Number.isNaN(v)) return null;
+      const isNoCharge = targetSocs[s] <= currentSoc;
+      if (useGross && isNoCharge) return null;
+      const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
       if (!isPrice) return ctPerKwh;
-      const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       return (ctPerKwh * powerKw * hours) / 100;
     })
   );
@@ -71,9 +73,11 @@ function buildChartData(data: ChartData, opts?: { valueLabel?: 'Avg' | 'Max' }) 
     targetSocs.map((_, s) => {
       const v = matrix[h][s];
       if (Number.isNaN(v)) return `${t('chartTarget')}${y[h]} / ${x[s]} — ${t('chartNotEnoughHours')}`;
+      const isNoCharge = targetSocs[s] <= currentSoc;
+      if (useGross && isNoCharge) return `${t('chartTarget')}${y[h]} / ${x[s]} — ${t('chartNoCharging')}`;
+      const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
       if (!isPrice) return `${t('chartTarget')}${y[h]} / ${x[s]} — ${valueLabel}: ${ctPerKwh.toFixed(2)} ct/kWh (${v.toFixed(2)} Eur/MWh)`;
-      const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
       const priceEur = (ctPerKwh * powerKw * hours) / 100;
       return `${t('chartTarget')}${y[h]} / ${x[s]} — ${valueLabel} price: €${priceEur.toFixed(2)} (${ctPerKwh.toFixed(2)} ct/kWh × ${powerKw.toFixed(2)} kW × ${hours}h)`;
     })
@@ -95,9 +99,10 @@ function zValue(
 ): number {
   const v = matrix[h]?.[s];
   if (v == null || Number.isNaN(v)) return NaN;
+  if (useGross && targetSocs[s] <= currentSoc) return NaN;
+  const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
   const ctPerKwh = toCtPerKwh(v, useGross, extraCt);
   if (!isPrice) return ctPerKwh;
-  const hours = getHoursNeeded(currentSoc, targetSocs[s], evCapacity, powerKw);
   return (ctPerKwh * powerKw * hours) / 100;
 }
 

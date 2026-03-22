@@ -40,8 +40,8 @@
           <div class="form-row">
             <label for="target-soc" data-i18n="targetSoc">Target SOC (%)</label>
             <div class="form-row-inputs">
-              <input type="number" id="target-soc" min="0" max="100" value="80" />
-              <input type="range" id="target-soc-slider" min="0" max="100" value="80" />
+              <input type="number" id="target-soc" min="0" max="100" step="5" value="80" />
+              <input type="range" id="target-soc-slider" min="0" max="100" step="5" value="80" />
             </div>
           </div>
         </div>
@@ -53,6 +53,7 @@
           <button type="button" class="tab-button" data-tab="avg" data-i18n="avgTotalPrice">Average/Total price</button>
         </div>
         <div id="tab-panel-max" class="tab-panel active">
+          <p class="tab-description" data-i18n="maxPriceTabDescription">Set this max price as the limit in your charging station. Charging will start when prices are at or below this value, so you achieve the calculated result (or similarly good).</p>
           <div class="charts-secondary">
             <div id="chart-2d-fixed-time-max" class="chart chart-2d"></div>
             <div id="chart-2d-fixed-soc-max" class="chart chart-2d"></div>

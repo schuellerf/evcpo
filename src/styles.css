@@ -383,6 +383,13 @@ header h1 {
   display: block;
 }
 
+.tab-description {
+  margin: 0 0 1rem;
+  font-size: 0.95rem;
+  color: #aaa;
+  line-height: 1.4;
+}
+
 .chart-toolbar-avg {
   display: flex;
   align-items: center;
