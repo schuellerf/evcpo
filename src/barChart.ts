@@ -65,7 +65,7 @@ export function renderPriceBarChart(
       },
     },
     hoverinfo: 'text' as const,
-    text: y.map((ct, i) => `${x[i]}: ${ct.toFixed(2)} ct/kWh`),
+    text: y.map((ct) => ct.toFixed(2)),
   };
 
   const shapes: Plotly.Layout['shapes'] = [];
