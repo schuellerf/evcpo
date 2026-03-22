@@ -86,7 +86,7 @@ function updatePowerDisplay(): void {
   if (powerKwEl) powerKwEl.textContent = getPowerKw().toFixed(2);
 }
 
-const NET_FN_SUP = '<sup><a href="#fn1">¹</a></sup>';
+const NET_FN_SUP = '<sup><a href="#fn1">*</a></sup>';
 
 function formatResult(
   hours: number,
@@ -178,8 +178,8 @@ async function runCalculation(): Promise<void> {
     }
   } catch (e) {
     resultEl.textContent = `Error: ${e instanceof Error ? e.message : String(e)}`;
+    document.getElementById('footnote-net')?.setAttribute('aria-hidden', 'true');
   }
-  document.getElementById('footnote-net')?.setAttribute('aria-hidden', 'true');
 }
 
 async function updateChart(): Promise<void> {

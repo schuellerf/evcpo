@@ -281,6 +281,10 @@ header h1 {
   display: none;
 }
 
+.footnote[aria-hidden="false"] {
+  display: block;
+}
+
 .footnote a {
   color: #4a9eff;
   text-decoration: none;
